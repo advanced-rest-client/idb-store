@@ -1,22 +1,9 @@
-import { fixture, assert, aTimeout } from '@open-wc/testing';
+import { assert, aTimeout } from '@open-wc/testing';
 import { ArcModelEventTypes, ArcModelEvents } from '@advanced-rest-client/events';
 import { DbHelper } from './db-helper.js';
-import '../../url-indexer.js';
-
-/** @typedef {import('../../src/UrlIndexer').UrlIndexer} UrlIndexer */
+import { UrlIndexer } from '../../index.js';
 
 describe('UrlIndexer', () => {
-  /**
-   * @return {Promise<UrlIndexer>}
-   */
-  async function basicFixture() {
-    return fixture('<url-indexer></url-indexer>');
-  }
-
-  // before(async () => {
-  //   await DbHelper.destroy();
-  // });
-
   describe('Deleting indexes', () => {
     describe('deleteIndexedData()', () => {
       const FULL_URL = 'https://domain.com/api?a=b&c=d';
@@ -24,10 +11,11 @@ describe('UrlIndexer', () => {
       const REQUEST_ID_2 = 'test-id-2';
       const REQUEST_TYPE = 'saved';
 
-      let element = /** @type UrlIndexer */ (null);
+      /** @type UrlIndexer */
+      let instance;
       beforeEach(async () => {
-        element = await basicFixture();
-        await element.index([
+        instance = new UrlIndexer(window);
+        await instance.index([
           {
             url: FULL_URL,
             id: REQUEST_ID,
@@ -42,29 +30,30 @@ describe('UrlIndexer', () => {
       });
 
       afterEach(async () => {
-        const db = await element.openSearchStore();
+        const db = await instance.openSearchStore();
         db.close();
         await DbHelper.clearData()
       });
 
       it('deletes index of a single request', async () => {
-        await element.deleteIndexedData([REQUEST_ID]);
+        await instance.deleteIndexedData([REQUEST_ID]);
         const data = await DbHelper.readAllIndexes();
         assert.lengthOf(data, 8);
       });
 
       it('Deletes both indexes', async () => {
-        await element.deleteIndexedData([REQUEST_ID, REQUEST_ID_2]);
+        await instance.deleteIndexedData([REQUEST_ID, REQUEST_ID_2]);
         const data = await DbHelper.readAllIndexes();
         assert.lengthOf(data, 0);
       });
     });
 
     describe('deleteIndexedType()', () => {
-      let element = /** @type UrlIndexer */ (null);
+      /** @type UrlIndexer */
+      let instance;
       beforeEach(async () => {
-        element = await basicFixture();
-        await element.index([
+        instance = new UrlIndexer(window);
+        await instance.index([
           {
             url: 'https://domain.com/',
             id: 'r1',
@@ -79,23 +68,24 @@ describe('UrlIndexer', () => {
       });
 
       afterEach(async () => {
-        const db = await element.openSearchStore();
+        const db = await instance.openSearchStore();
         db.close();
         await DbHelper.clearData()
       });
 
       it('Deletes by type only', async () => {
-        await element.deleteIndexedType('t1');
+        await instance.deleteIndexedType('t1');
         const data = await DbHelper.readAllIndexes();
         assert.lengthOf(data, 3);
       });
     });
 
     describe('clearIndexedData()', () => {
-      let element = /** @type UrlIndexer */ (null);
+      /** @type UrlIndexer */
+      let instance;
       beforeEach(async () => {
-        element = await basicFixture();
-        await element.index([
+        instance = new UrlIndexer(window);
+        await instance.index([
           {
             url: 'https://domain.com/',
             id: 'r1',
@@ -110,23 +100,24 @@ describe('UrlIndexer', () => {
       });
 
       afterEach(async () => {
-        const db = await element.openSearchStore();
+        const db = await instance.openSearchStore();
         db.close();
         await DbHelper.clearData()
       });
 
       it('Deletes all index data', async () => {
-        await element.clearIndexedData();
+        await instance.clearIndexedData();
         const data = await DbHelper.readAllIndexes();
         assert.lengthOf(data, 0);
       });
     });
 
     describe('[deletemodelHandler]()', () => {
-      let element = /** @type UrlIndexer */ (null);
+      /** @type UrlIndexer */
+      let instance;
       beforeEach(async () => {
-        element = await basicFixture();
-        await element.index([
+        instance = new UrlIndexer(window);
+        await instance.index([
           {
             url: 'https://domain.com/',
             id: 'r1',
@@ -141,7 +132,7 @@ describe('UrlIndexer', () => {
       });
 
       afterEach(async () => {
-        const db = await element.openSearchStore();
+        const db = await instance.openSearchStore();
         db.close();
         await DbHelper.clearData()
       });
@@ -184,10 +175,11 @@ describe('UrlIndexer', () => {
     });
 
     describe('[requestDeleteHandler]()', () => {
-      let element = /** @type UrlIndexer */ (null);
+      /** @type UrlIndexer */
+      let instance;
       beforeEach(async () => {
-        element = await basicFixture();
-        await element.index([
+        instance = new UrlIndexer(window);
+        await instance.index([
           {
             url: 'https://domain.com/',
             id: 'r1',
@@ -202,7 +194,7 @@ describe('UrlIndexer', () => {
       });
 
       afterEach(async () => {
-        const db = await element.openSearchStore();
+        const db = await instance.openSearchStore();
         db.close();
         await DbHelper.clearData()
       });

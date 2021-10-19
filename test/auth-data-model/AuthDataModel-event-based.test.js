@@ -3,7 +3,6 @@ import { ArcModelEventTypes, ArcModelEvents } from '@advanced-rest-client/events
 import { AuthDataModel } from '../../src/AuthDataModel.js';
 import { MockedStore } from '../../index.js'
 
-
 /* eslint-disable no-param-reassign */
 /* eslint-disable no-unused-vars */
 
@@ -20,9 +19,9 @@ describe('Authorization data model - events', () => {
   describe(`the query event`, () => {
     before(async () => {
       const et = await etFixture();
-      const element = new AuthDataModel();
-      element.listen(et);
-      await element.update(url, method, {
+      const instance = new AuthDataModel();
+      instance.listen(et);
+      await instance.update(url, method, {
         username: 'uname-test',
         password: 'pwd-test',
         domain: 'some',
@@ -32,7 +31,7 @@ describe('Authorization data model - events', () => {
     /** @type Element */
     let et;
     /** @type AuthDataModel */
-    let element;
+    let instance;
 
     after(async () => {
       await store.destroyBasicAuth();
@@ -40,8 +39,8 @@ describe('Authorization data model - events', () => {
 
     beforeEach(async () => {
       et = await etFixture();
-      element = new AuthDataModel();
-      element.listen(et);
+      instance = new AuthDataModel();
+      instance.listen(et);
     });
 
     it('ignores cancelled events', async () => {
@@ -78,12 +77,12 @@ describe('Authorization data model - events', () => {
     /** @type Element */
     let et;
     /** @type AuthDataModel */
-    let element;
+    let instance;
 
     beforeEach(async () => {
       et = await etFixture();
-      element = new AuthDataModel();
-      element.listen(et);
+      instance = new AuthDataModel();
+      instance.listen(et);
     });
 
     it('ignores cancelled events', async () => {

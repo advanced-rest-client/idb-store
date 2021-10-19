@@ -1,40 +1,41 @@
 import { fixture, assert } from '@open-wc/testing';
-import { DataGenerator } from '@advanced-rest-client/arc-data-generator';
+import { ArcMock } from '@advanced-rest-client/arc-mock';
 import sinon from 'sinon';
 import { ArcModelEventTypes, ArcModelEvents } from '@advanced-rest-client/events';
-import { UrlIndexer } from '../../index.js';
-import '../../request-model.js';
+import { MockedStore, RequestModel, UrlIndexer } from '../../index.js';
 
 /* eslint-disable prefer-destructuring */
 
-/** @typedef {import('../../index').RequestModel} RequestModel */
 /** @typedef {import('@advanced-rest-client/events').Project.ARCProject} ARCProject */
 /** @typedef {import('@advanced-rest-client/events').ArcRequest.ARCSavedRequest} ARCSavedRequest */
 /** @typedef {import('@advanced-rest-client/events').ArcRequest.ARCHistoryRequest} ARCHistoryRequest */
-/** @typedef {import('@advanced-rest-client/arc-data-generator').InsertSavedResult} InsertSavedResult */
+/** @typedef {import('../../src/types').InsertSavedResult} InsertSavedResult */
 
 describe('RequestModel Events API', () => {
-  /**
-   * @return {Promise<RequestModel>}
-   */
-  async function basicFixture() {
-    return fixture('<request-model></request-model>');
+  const store = new MockedStore();
+  const generator = new ArcMock();
+  
+  async function etFixture() {
+    return fixture(`<div></div>`);
   }
 
-  const generator = new DataGenerator();
-
-  describe(`${ArcModelEventTypes.Request.read} event`, () => {
+  describe(`the read event`, () => {
     let requests = /** @type ARCSavedRequest[] */ (null);
     before(async () => {
-      const data = await generator.insertSavedRequestData();
+      const data = await store.http.savedData();
       requests = data.requests;
     });
 
-    after(() => generator.destroySavedRequestData());
+    after(() => store.destroySaved());
 
-    let model = /** @type RequestModel */ (null);
+    /** @type RequestModel */
+    let instance;
+    /** @type Element */
+    let et;
     beforeEach(async () => {
-      model = await basicFixture();
+      et = await etFixture();
+      instance = new RequestModel();
+      instance.listen(et);
     });
 
     it('ignores cancelled events', async () => {
@@ -71,7 +72,7 @@ describe('RequestModel Events API', () => {
       const rev = request._rev;
       const oldName = request.name;
       request.name = 'xyz';
-      const record = await model.post('saved', request);
+      const record = await instance.post('saved', request);
       request._rev = record.rev;
       const result = await ArcModelEvents.Request.read(document.body, 'saved', requests[0]._id, {
         rev,
@@ -149,17 +150,23 @@ describe('RequestModel Events API', () => {
     });
   });
 
-  describe(`${ArcModelEventTypes.Request.readBulk} event`, () => {
+  describe(`the read bulk event`, () => {
     let requests = /** @type ARCSavedRequest[] */ (null);
     before(async () => {
-      const data = await generator.insertSavedRequestData();
+      const data = await store.http.savedData();
       requests = data.requests;
     });
 
-    after(() => generator.destroySavedRequestData());
+    after(() => store.destroySaved());
 
+    /** @type RequestModel */
+    let instance;
+    /** @type Element */
+    let et;
     beforeEach(async () => {
-      await basicFixture();
+      et = await etFixture();
+      instance = new RequestModel();
+      instance.listen(et);
     });
 
     it('ignores cancelled events', async () => {
@@ -256,14 +263,20 @@ describe('RequestModel Events API', () => {
     });
   });
 
-  describe(`${ArcModelEventTypes.Request.update} event`, () => {
+  describe(`the update event`, () => {
     after(async () => {
-      await generator.destroySavedRequestData();
-      await generator.destroyHistoryData();
+      await store.destroySaved();
+      await store.destroyHistory();
     });
 
+    /** @type RequestModel */
+    let instance;
+    /** @type Element */
+    let et;
     beforeEach(async () => {
-      await basicFixture();
+      et = await etFixture();
+      instance = new RequestModel();
+      instance.listen(et);
     });
 
     it('ignores cancelled events', async () => {
@@ -286,7 +299,7 @@ describe('RequestModel Events API', () => {
     });
 
     it('saves a "history" item', async () => {
-      const request = /** @type ARCHistoryRequest */ (generator.generateHistoryObject());
+      const request = generator.http.history();
       const result = await ArcModelEvents.Request.update(document.body, 'history', request);
       assert.typeOf(result, 'object', 'result is an object');
       assert.typeOf(result.id, 'string', 'has created ID');
@@ -297,7 +310,7 @@ describe('RequestModel Events API', () => {
     });
 
     it('saves a "saved" item', async () => {
-      const request = /** @type ARCSavedRequest */ (generator.generateSavedItem());
+      const request = generator.http.saved();
       const result = await ArcModelEvents.Request.update(document.body, 'saved', request);
       assert.typeOf(result, 'object', 'result is an object');
       assert.typeOf(result.id, 'string', 'has created ID');
@@ -308,7 +321,7 @@ describe('RequestModel Events API', () => {
     });
 
     it('throws when no requestType when constructing the event', async () => {
-      const request = /** @type ARCSavedRequest */ (generator.generateSavedItem());
+      const request = generator.http.saved();
       let thrown = false;
       try {
         await ArcModelEvents.Request.update(document.body, undefined, request);
@@ -367,7 +380,7 @@ describe('RequestModel Events API', () => {
     });
 
     it('throws when unknown type', async () => {
-      const request = /** @type ARCSavedRequest */ (generator.generateSavedItem());
+      const request = generator.http.saved();
       let thrown = false;
       try {
         await ArcModelEvents.Request.update(document.body, 'unknown', request);
@@ -378,14 +391,20 @@ describe('RequestModel Events API', () => {
     });
   });
 
-  describe(`${ArcModelEventTypes.Request.updateBulk} event`, () => {
+  describe(`the update bulk event`, () => {
     after(async () => {
-      await generator.destroySavedRequestData();
-      await generator.destroyHistoryData();
+      await store.destroySaved();
+      await store.destroyHistory();
     });
 
+    /** @type RequestModel */
+    let instance;
+    /** @type Element */
+    let et;
     beforeEach(async () => {
-      await basicFixture();
+      et = await etFixture();
+      instance = new RequestModel();
+      instance.listen(et);
     });
 
     it('ignores cancelled events', async () => {
@@ -402,13 +421,13 @@ describe('RequestModel Events API', () => {
       // @ts-ignore
       e.requestType = 'saved';
       // @ts-ignore
-      e.requests = generator.generateSavedRequestData();
+      e.requests = generator.http.savedData();
       document.body.dispatchEvent(e);
       assert.isUndefined(e.detail.result);
     });
 
     it('saves a "history" item', async () => {
-      const requests = /** @type ARCHistoryRequest[] */ (generator.generateHistoryRequestsData());
+      const requests = generator.http.listHistory();
       const result = await ArcModelEvents.Request.updateBulk(document.body, 'history', requests);
       assert.typeOf(result, 'array', 'result is an array');
       const [change] = result;
@@ -420,7 +439,7 @@ describe('RequestModel Events API', () => {
     });
 
     it('saves a "saved" item', async () => {
-      const generated = generator.generateSavedRequestData();
+      const generated = generator.http.savedData();
       // @ts-ignore
       const requests = /** @type ARCSavedRequest[] */ (generated.requests);
       const result = await ArcModelEvents.Request.updateBulk(document.body, 'saved', requests);
@@ -434,7 +453,7 @@ describe('RequestModel Events API', () => {
     });
 
     it('throws when no requestType when constructing the event', async () => {
-      const requests = /** @type ARCSavedRequest[] */ (generator.generateSavedRequestData().requests);
+      const requests = /** @type ARCSavedRequest[] */ (generator.http.savedData().requests);
       let thrown = false;
       try {
         await ArcModelEvents.Request.updateBulk(document.body, undefined, requests);
@@ -454,7 +473,7 @@ describe('RequestModel Events API', () => {
           detail: { result: undefined },
         });
         // @ts-ignore
-        e.requests = generator.generateSavedRequestData();
+        e.requests = generator.http.savedData();
         document.body.dispatchEvent(e);
         await e.detail.result;
       } catch (e) {
@@ -493,22 +512,28 @@ describe('RequestModel Events API', () => {
     });
   });
 
-  describe(`${ArcModelEventTypes.Request.delete} event`, () => {
+  describe(`the delete event`, () => {
     let requests = /** @type ARCSavedRequest[] */ (null);
     before(async () => {
-      const data = await generator.insertSavedRequestData({
+      const data = await store.insertSaved(undefined, undefined, {
         forceProject: true,
       });
       requests = data.requests;
     });
 
     after(async () => {
-      await generator.destroySavedRequestData();
-      await generator.destroyHistoryData();
+      await store.destroySaved();
+      await store.destroyHistory();
     });
 
+    /** @type RequestModel */
+    let instance;
+    /** @type Element */
+    let et;
     beforeEach(async () => {
-      await basicFixture();
+      et = await etFixture();
+      instance = new RequestModel();
+      instance.listen(et);
     });
 
     it('ignores cancelled events', async () => {
@@ -525,7 +550,7 @@ describe('RequestModel Events API', () => {
       // @ts-ignore
       e.requestType = 'saved';
       // @ts-ignore
-      e.requests = generator.generateSavedRequestData();
+      e.requests = generator.http.savedData();
       document.body.dispatchEvent(e);
       assert.isUndefined(e.detail.result);
     });
@@ -610,22 +635,28 @@ describe('RequestModel Events API', () => {
     });
   });
 
-  describe(`${ArcModelEventTypes.Request.deleteBulk} event`, () => {
+  describe(`the delete bulk event`, () => {
     let requests = /** @type ARCSavedRequest[] */ (null);
     before(async () => {
-      const data = await generator.insertSavedRequestData({
+      const data = await store.insertSaved(undefined, undefined, {
         forceProject: true,
       });
       requests = data.requests;
     });
 
     after(async () => {
-      await generator.destroySavedRequestData();
-      await generator.destroyHistoryData();
+      await store.destroySaved();
+      await store.destroyHistory();
     });
 
+    /** @type RequestModel */
+    let instance;
+    /** @type Element */
+    let et;
     beforeEach(async () => {
-      await basicFixture();
+      et = await etFixture();
+      instance = new RequestModel();
+      instance.listen(et);
     });
 
     it('ignores cancelled events', async () => {
@@ -642,7 +673,7 @@ describe('RequestModel Events API', () => {
       // @ts-ignore
       e.requestType = 'saved';
       // @ts-ignore
-      e.requests = generator.generateSavedRequestData();
+      e.requests = generator.http.savedData();
       document.body.dispatchEvent(e);
       assert.isUndefined(e.detail.result);
     });
@@ -734,22 +765,27 @@ describe('RequestModel Events API', () => {
     });
   });
 
-  describe(`${ArcModelEventTypes.Request.undeleteBulk} event`, () => {
+  describe(`The undelete bulk event`, () => {
     let doc = /** @type ARCSavedRequest */ (null);
     const type = 'saved';
 
     after(async () => {
-      await generator.destroySavedRequestData();
-      await generator.destroyHistoryData();
+      await store.destroySaved();
+      await store.destroyHistory();
     });
 
-    let model = /** @type RequestModel */ (null);
+    /** @type RequestModel */
+    let instance;
+    /** @type Element */
+    let et;
     beforeEach(async () => {
-      model = await basicFixture();
-      const request = /** @type ARCSavedRequest */ (generator.generateSavedItem());
-      const record = await model.post(type, request);
+      et = await etFixture();
+      instance = new RequestModel();
+      instance.listen(et);
+      const request = generator.http.saved();
+      const record = await instance.post(type, request);
       doc = /** @type ARCSavedRequest */ (record.item);
-      const result = await model.delete(type, doc._id, doc._rev);
+      const result = await instance.delete(type, doc._id, doc._rev);
       doc._rev = result.rev;
     });
 
@@ -774,7 +810,7 @@ describe('RequestModel Events API', () => {
       // @ts-ignore
       e.requestType = 'saved';
       // @ts-ignore
-      e.requests = generator.generateSavedRequestData();
+      e.requests = generator.http.savedData();
       document.body.dispatchEvent(e);
       assert.isUndefined(e.detail.result);
     });
@@ -783,7 +819,7 @@ describe('RequestModel Events API', () => {
       const result = await ArcModelEvents.Request.undeleteBulk(document.body, 'saved', [deleted(doc)]);
       const updatedRev = result[0].item._rev;
       assert.equal(updatedRev.indexOf('3-'), 0, 'The rev property is updated.');
-      const data = await generator.getDatastoreRequestData();
+      const data = await store.getDatastoreRequestData();
       const [item] = data;
       assert.equal(item._id, doc._id, 'is the same item');
       assert.equal(item._rev, updatedRev, 'has new revision');
@@ -828,14 +864,20 @@ describe('RequestModel Events API', () => {
     });
   });
 
-  describe(`${ArcModelEventTypes.Request.store} event`, () => {
+  describe(`The store event`, () => {
     after(async () => {
-      await generator.destroyHistoryData();
-      await generator.destroySavedRequestData();
+      await store.destroyHistory();
+      await store.destroySaved();
     });
 
+    /** @type RequestModel */
+    let instance;
+    /** @type Element */
+    let et;
     beforeEach(async () => {
-      await basicFixture();
+      et = await etFixture();
+      instance = new RequestModel();
+      instance.listen(et);
     });
 
     it('ignores cancelled events', async () => {
@@ -858,7 +900,7 @@ describe('RequestModel Events API', () => {
     });
 
     it('returns the change record for a history entity', async () => {
-      const request = /** @type ARCHistoryRequest */ (generator.generateHistoryObject());
+      const request = generator.http.history();
       const result = await ArcModelEvents.Request.store(document.body, 'history', request);
       assert.typeOf(result, 'object', 'has the change record');
       assert.typeOf(result.id, 'string', 'has the id');
@@ -866,7 +908,7 @@ describe('RequestModel Events API', () => {
     });
 
     it('returns the change record for a saved entity', async () => {
-      const request = /** @type ARCSavedRequest */ (generator.generateSavedItem());
+      const request = generator.http.saved();
       const result = await ArcModelEvents.Request.store(document.body, 'saved', request);
       assert.typeOf(result, 'object', 'has the change record');
       assert.typeOf(result.id, 'string', 'has the id');
@@ -874,16 +916,16 @@ describe('RequestModel Events API', () => {
     });
 
     it('stores request with a new project', async () => {
-      const request = /** @type ARCSavedRequest */ (generator.generateSavedItem());
+      const request = generator.http.saved();
       const result = await ArcModelEvents.Request.store(document.body, 'saved', request, ['test']);
       // @ts-ignore
       assert.lengthOf(result.item.projects, 1, 'has project id');
-      const projects = await generator.getDatastoreProjectsData();
+      const projects = await store.getDatastoreProjectsData();
       assert.lengthOf(projects, 1, 'has created project');
     });
 
     it('throws when unknown type', async () => {
-      const request = /** @type ARCSavedRequest */ (generator.generateSavedItem());
+      const request = generator.http.saved();
       let thrown = false;
       try {
         await ArcModelEvents.Request.store(document.body, 'other', request);
@@ -894,11 +936,11 @@ describe('RequestModel Events API', () => {
     });
   });
 
-  describe(`${ArcModelEventTypes.Request.projectlist} event`, () => {
+  describe(`The projects list event`, () => {
     let project;
     let projects = /** @type ARCProject[] */ (null);
     before(async () => {
-      const data = await generator.insertSavedRequestData({
+      const data = await store.insertSaved(undefined, undefined, {
         forceProject: true,
       });
       projects = /** @type ARCProject[] */ (data.projects);
@@ -914,11 +956,17 @@ describe('RequestModel Events API', () => {
     });
 
     after(async () => {
-      await generator.destroySavedRequestData();
+      await store.destroySaved();
     });
 
+    /** @type RequestModel */
+    let instance;
+    /** @type Element */
+    let et;
     beforeEach(async () => {
-      await basicFixture();
+      et = await etFixture();
+      instance = new RequestModel();
+      instance.listen(et);
     });
 
     it('ignores cancelled events', async () => {
@@ -947,14 +995,12 @@ describe('RequestModel Events API', () => {
     });
   });
 
-  describe(`${ArcModelEventTypes.Request.query} event`, () => {
+  describe(`The query event`, () => {
     let requests = /** @type ARCSavedRequest[] */ (null);
     before(async () => {
-      const data = await generator.insertSavedRequestData({
-        requestsSize: 3,
-      });
+      const data = await store.insertSaved(3);
       requests = data.requests;
-      const indexer = new UrlIndexer();
+      const indexer = new UrlIndexer(window);
       const indexable = requests.map((r) => ({
           id: r._id,
           type: r.type,
@@ -964,14 +1010,20 @@ describe('RequestModel Events API', () => {
     });
 
     after(async () => {
-      await generator.destroySavedRequestData();
-      await generator.destroyHistoryData();
-      const indexer = new UrlIndexer();
+      await store.destroySaved();
+      await store.destroyHistory();
+      const indexer = new UrlIndexer(window);
       await indexer.clearIndexedData();
     });
 
+    /** @type RequestModel */
+    let instance;
+    /** @type Element */
+    let et;
     beforeEach(async () => {
-      await basicFixture();
+      et = await etFixture();
+      instance = new RequestModel();
+      instance.listen(et);
     });
 
     it('ignores cancelled events', async () => {
@@ -1000,12 +1052,10 @@ describe('RequestModel Events API', () => {
     });
   });
 
-  describe(`${ArcModelEventTypes.Request.list} event`, () => {
+  describe(`The list event`, () => {
     before(async () => {
-      const data = await generator.insertSavedRequestData({
-        requestsSize: 30,
-      });
-      const indexer = new UrlIndexer();
+      const data = await store.insertSaved(30);
+      const indexer = new UrlIndexer(window);
       const indexable = data.requests.map((r) => ({
           id: r._id,
           type: r.type,
@@ -1015,14 +1065,20 @@ describe('RequestModel Events API', () => {
     });
 
     after(async () => {
-      await generator.destroySavedRequestData();
-      await generator.destroyHistoryData();
-      const indexer = new UrlIndexer();
+      await store.destroySaved();
+      await store.destroyHistory();
+      const indexer = new UrlIndexer(window);
       await indexer.clearIndexedData();
     });
 
+    /** @type RequestModel */
+    let instance;
+    /** @type Element */
+    let et;
     beforeEach(async () => {
-      await basicFixture();
+      et = await etFixture();
+      instance = new RequestModel();
+      instance.listen(et);
     });
 
     it('ignores cancelled events', async () => {
@@ -1096,14 +1152,19 @@ describe('RequestModel Events API', () => {
     });
   });
 
-  describe(`${ArcModelEventTypes.destroy} event`, () => {
-    let element = /** @type RequestModel */ (null);
+  describe(`The destroy event`, () => {
+    /** @type RequestModel */
+    let instance;
+    /** @type Element */
+    let et;
     beforeEach(async () => {
-      element = await basicFixture();
+      et = await etFixture();
+      instance = new RequestModel();
+      instance.listen(et);
     });
 
     it('calls deleteModel() with data store name', async () => {
-      const spy = sinon.spy(element, 'deleteModel');
+      const spy = sinon.spy(instance, 'deleteModel');
       await ArcModelEvents.destroy(document.body, ['saved-requests']);
       assert.isTrue(spy.calledOnce, 'function was called');
       // argument is normalized
@@ -1111,13 +1172,13 @@ describe('RequestModel Events API', () => {
     });
 
     it('ignores when no stores in the request', async () => {
-      const spy = sinon.spy(element, 'deleteModel');
+      const spy = sinon.spy(instance, 'deleteModel');
       await ArcModelEvents.destroy(document.body, []);
       assert.isFalse(spy.called);
     });
 
     it('ignores when requesting different store', async () => {
-      const spy = sinon.spy(element, 'deleteModel');
+      const spy = sinon.spy(instance, 'deleteModel');
       await ArcModelEvents.destroy(document.body, ['other']);
       assert.isFalse(spy.called);
     });

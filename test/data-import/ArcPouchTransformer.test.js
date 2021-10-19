@@ -1,5 +1,5 @@
 import { assert } from '@open-wc/testing';
-import { DataGenerator } from '@advanced-rest-client/arc-data-generator';
+import { ArcMock } from '@advanced-rest-client/arc-mock';
 import { DataTestHelper } from './DataTestHelper.js';
 import { ArcPouchTransformer } from '../../src/transformers/ArcPouchTransformer.js';
 import { ExportProcessor } from '../../src/lib/ExportProcessor.js';
@@ -194,7 +194,7 @@ describe('ArcPouchTransformer', () => {
   });
 
   describe('Current export system', () => {
-    const generator = new DataGenerator();
+    const generator = new ArcMock();
     const exportFactory = new ExportProcessor(false);
 
     function createExport(key, data) {
@@ -210,12 +210,8 @@ describe('ArcPouchTransformer', () => {
     }
 
     it('does not process the saved requests data', async () => {
-      const projects = generator.generateProjects({
-        projectsSize: 1
-      });
-      const data = generator.generateRequests({
-        requestsSize: 2,
-      });
+      const projects = generator.http.listProjects(1);
+      const data = generator.http.savedData(2).requests;
       const exportObject = exportFactory.createExportObject([
         {
           key: 'projects',
@@ -257,9 +253,10 @@ describe('ArcPouchTransformer', () => {
     });
 
     it('does not process the history requests data', async () => {
-      const data = generator.generateHistoryRequestsData({
-        requestsSize: 2,
-        forcePayload: true,
+      const data = generator.http.listHistory(2, {
+        payload: {
+          force: true,
+        }
       });
       const exportObject = createExport('history', data);
       const factory = new ArcPouchTransformer(exportObject);
@@ -268,9 +265,7 @@ describe('ArcPouchTransformer', () => {
     });
 
     it('does not process the ws url data', async () => {
-      const data = generator.generateUrlsData({
-        size: 2,
-      });
+      const data = generator.urls.urls(2);
       const exportObject = createExport('websocketurlhistory', data);
       const factory = new ArcPouchTransformer(exportObject);
       const result = await factory.transform();
@@ -278,9 +273,7 @@ describe('ArcPouchTransformer', () => {
     });
 
     it('does not process the url history data', async () => {
-      const data = generator.generateUrlsData({
-        size: 2,
-      });
+      const data = generator.urls.urls(2);
       const exportObject = createExport('urlhistory', data);
       const factory = new ArcPouchTransformer(exportObject);
       const result = await factory.transform();
@@ -288,9 +281,7 @@ describe('ArcPouchTransformer', () => {
     });
 
     it('does not process the url history data', async () => {
-      const data = generator.generateVariablesData({
-        size: 2,
-      });
+      const data = generator.variables.listVariables(2);
       const exportObject = createExport('variables', data);
       const factory = new ArcPouchTransformer(exportObject);
       const result = await factory.transform();
@@ -298,9 +289,7 @@ describe('ArcPouchTransformer', () => {
     });
 
     it('does not process the authorization data', async () => {
-      const data = generator.generateBasicAuthData({
-        size: 2,
-      });
+      const data = generator.authorization.basicList(2);
       const exportObject = createExport('authdata', data);
       const factory = new ArcPouchTransformer(exportObject);
       const result = await factory.transform();
@@ -308,9 +297,7 @@ describe('ArcPouchTransformer', () => {
     });
 
     it('does not process the host rules data', async () => {
-      const data = generator.generateHostRulesData({
-        size: 2,
-      });
+      const data = generator.hostRules.rules(2);
       const exportObject = createExport('hostrules', data);
       const factory = new ArcPouchTransformer(exportObject);
       const result = await factory.transform();

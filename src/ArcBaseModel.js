@@ -43,7 +43,7 @@ export class ArcBaseModel {
      * When not set the model does not dispatch events.
      * @type {EventTarget}
      */
-    this.eventsTarget = undefined;
+    this.eventsTarget = window;
   }
 
   /**

@@ -1,68 +1,85 @@
-import { assert, fixture, html, oneEvent } from '@open-wc/testing';
-import { DataGenerator } from '@advanced-rest-client/arc-data-generator';
+import { assert, fixture, oneEvent } from '@open-wc/testing';
+import { ArcMock } from '@advanced-rest-client/arc-mock';
 import sinon from 'sinon';
 import { ArcModelEventTypes, ArcModelEvents } from '@advanced-rest-client/events';
-import '../../variables-model.js';
-import { currentValue } from '../../src/VariablesModel.js';
+import { VariablesModel, currentValue } from '../../src/VariablesModel.js';
+import { MockedStore } from '../../index.js';
 
 /* global PouchDB */
 
-/** @typedef {import('../../src/VariablesModel').VariablesModel} VariablesModel */
 /** @typedef {import('@advanced-rest-client/events').Variable.ARCVariable} ARCVariable */
 /** @typedef {import('@advanced-rest-client/events').Variable.ARCEnvironment} ARCEnvironment */
 
 describe('VariablesModel', () => {
-  const generator = new DataGenerator();
-
-  /**
-   * @return {Promise<VariablesModel>}
-   */
-  async function basicFixture() {
-    return fixture(html`<variables-model></variables-model>`);
+  const store = new MockedStore();
+  const generator = new ArcMock();
+  
+  async function etFixture() {
+    return fixture(`<div></div>`);
   }
 
   describe('direct API', () => {
     describe('#environmentDb', () => {
-      let element = /** @type VariablesModel */ (null);
+      /** @type VariablesModel */
+      let instance;
+      /** @type Element */
+      let et;
       beforeEach(async () => {
-        element = await basicFixture();
+        et = await etFixture();
+        instance = new VariablesModel();
+        instance.listen(et);
       });
 
       it('returns the handler to the data store', () => {
-        assert.equal(element.environmentDb.name, 'variables-environments');
+        assert.equal(instance.environmentDb.name, 'variables-environments');
       });
     });
 
     describe('#variableDb', () => {
-      let element = /** @type VariablesModel */ (null);
+      /** @type VariablesModel */
+      let instance;
+      /** @type Element */
+      let et;
       beforeEach(async () => {
-        element = await basicFixture();
+        et = await etFixture();
+        instance = new VariablesModel();
+        instance.listen(et);
       });
 
       it('returns the handler to the data store', () => {
-        assert.equal(element.variableDb.name, 'variables');
+        assert.equal(instance.variableDb.name, 'variables');
       });
     });
 
     describe('constructor()', () => {
-      let element = /** @type VariablesModel */ (null);
+      /** @type VariablesModel */
+      let instance;
+      /** @type Element */
+      let et;
       beforeEach(async () => {
-        element = await basicFixture();
+        et = await etFixture();
+        instance = new VariablesModel();
+        instance.listen(et);
       });
 
       it('does not set the name', () => {
-        assert.isUndefined(element.name);
+        assert.isUndefined(instance.name);
       });
     });
 
     describe('updateEnvironment()', () => {
-      let element = /** @type VariablesModel */ (null);
+      /** @type VariablesModel */
+      let instance;
+      /** @type Element */
+      let et;
       beforeEach(async () => {
-        element = await basicFixture();
+        et = await etFixture();
+        instance = new VariablesModel();
+        instance.listen(et);
       });
 
       after(async () => {
-        await generator.destroyVariablesData();
+        await store.destroyVariables();
       });
 
       it('returns the changelog', async () => {
@@ -70,7 +87,7 @@ describe('VariablesModel', () => {
           name: 'test1',
           created: 1234,
         };
-        const result = await element.updateEnvironment(entity);
+        const result = await instance.updateEnvironment(entity);
         assert.typeOf(result, 'object', 'returns an object');
         assert.typeOf(result.id, 'string', 'has an id');
         assert.typeOf(result.rev, 'string', 'has a rev');
@@ -83,7 +100,7 @@ describe('VariablesModel', () => {
           name: 'test2',
           created: 1234,
         };
-        const result = await element.updateEnvironment(entity);
+        const result = await instance.updateEnvironment(entity);
         const { item } = result;
         assert.typeOf(item, 'object', 'is an object');
         assert.typeOf(item._id, 'string', 'has an id');
@@ -96,10 +113,10 @@ describe('VariablesModel', () => {
         const entity = {
           name: 'test3',
         };
-        const r1 = await element.updateEnvironment(entity);
+        const r1 = await instance.updateEnvironment(entity);
         entity._id = r1.id;
         entity.name = 'other';
-        const r2 = await element.updateEnvironment(entity);
+        const r2 = await instance.updateEnvironment(entity);
         assert.equal(r2.id, r1.id, 'has the id');
         assert.typeOf(r2.rev, 'string', 'has a new rev');
         assert.notEqual(r2.rev, r1.rev, 'has updated rev');
@@ -110,11 +127,11 @@ describe('VariablesModel', () => {
         const entity = {
           name: 'test4',
         };
-        const r1 = await element.updateEnvironment(entity);
+        const r1 = await instance.updateEnvironment(entity);
         entity._id = r1.id;
         entity._rev = r1.rev;
         entity.name = 'other';
-        const r2 = await element.updateEnvironment(entity);
+        const r2 = await instance.updateEnvironment(entity);
         assert.equal(r2.id, r1.id, 'has the id');
         assert.typeOf(r2.rev, 'string', 'has a new rev');
         assert.notEqual(r2.rev, r1.rev, 'has updated rev');
@@ -126,8 +143,8 @@ describe('VariablesModel', () => {
           name: 'test5',
         };
         const spy = sinon.spy();
-        element.addEventListener(ArcModelEventTypes.Environment.State.update, spy);
-        await element.updateEnvironment(entity);
+        instance.addEventListener(ArcModelEventTypes.Environment.State.update, spy);
+        await instance.updateEnvironment(entity);
         assert.isTrue(spy.calledOnce);
       });
 
@@ -136,15 +153,15 @@ describe('VariablesModel', () => {
           name: 'test6',
         };
         const spy = sinon.spy();
-        element.addEventListener(ArcModelEventTypes.Environment.State.update, spy);
-        const record1 = await element.updateEnvironment(entity);
-        const variable = /** @type ARCVariable */ (generator.generateVariableObject());
+        instance.addEventListener(ArcModelEventTypes.Environment.State.update, spy);
+        const record1 = await instance.updateEnvironment(entity);
+        const variable = generator.variables.variable();
         variable.environment = entity.name;
-        const response1 = await element.variableDb.post(variable);
+        const response1 = await instance.variableDb.post(variable);
         entity._id = record1.id;
         entity.name = 'other name';
-        await element.updateEnvironment(entity);
-        const doc = /** @type ARCVariable */ (await element.variableDb.get(response1.id));
+        await instance.updateEnvironment(entity);
+        const doc = /** @type ARCVariable */ (await instance.variableDb.get(response1.id));
         assert.equal(doc.environment, 'other name');
       });
 
@@ -153,15 +170,15 @@ describe('VariablesModel', () => {
           name: 'test7',
         };
         const spy = sinon.spy();
-        element.addEventListener(ArcModelEventTypes.Environment.State.update, spy);
-        const record1 = await element.updateEnvironment(entity);
-        const variable = /** @type ARCVariable */ (generator.generateVariableObject());
+        instance.addEventListener(ArcModelEventTypes.Environment.State.update, spy);
+        const record1 = await instance.updateEnvironment(entity);
+        const variable = generator.variables.variable();
         variable.environment = entity.name;
-        const response1 = await element.variableDb.post(variable);
+        const response1 = await instance.variableDb.post(variable);
         entity._id = record1.id;
         entity.created = 1234;
-        await element.updateEnvironment(entity);
-        const doc = /** @type ARCVariable */ (await element.variableDb.get(response1.id));
+        await instance.updateEnvironment(entity);
+        const doc = /** @type ARCVariable */ (await instance.variableDb.get(response1.id));
         assert.equal(doc.environment, 'test7');
       });
 
@@ -172,7 +189,7 @@ describe('VariablesModel', () => {
             created: 1234,
           };
           // @ts-ignore
-          await element.updateEnvironment(entity);
+          await instance.updateEnvironment(entity);
         } catch (e) {
           thrown = true;
         }
@@ -185,75 +202,82 @@ describe('VariablesModel', () => {
           created: 1234,
           _id: 'unknown'
         };
-        const result = await element.updateEnvironment(entity);
+        const result = await instance.updateEnvironment(entity);
         assert.notEqual(result.id, 'unknown');
       });
     });
 
     describe('readEnvironment()', () => {
-      let element = /** @type VariablesModel */ (null);
+      /** @type VariablesModel */
+      let instance;
+      /** @type Element */
+      let et;
       beforeEach(async () => {
-        element = await basicFixture();
+        et = await etFixture();
+        instance = new VariablesModel();
+        instance.listen(et);
       });
 
       let created = /** @type ARCEnvironment */ (null);
       before(async () => {
-        const vars = /** @type ARCVariable[] */ (await generator.insertVariablesData({
-          size: 1,
-        }));
+        const vars = /** @type ARCVariable[] */ (await store.insertVariables(1));
         const entity = {
           name: vars[0].environment,
         };
-        const model = await basicFixture();
+        const model = new VariablesModel();
         const record = await model.updateEnvironment(entity);
         created = record.item;
       });
 
       after(async () => {
-        await generator.destroyVariablesData();
+        await store.destroyVariables();
       });
 
       it('reads existing environment by its name', async () => {
-        const result = await element.readEnvironment(created.name);
+        const result = await instance.readEnvironment(created.name);
         assert.typeOf(result, 'object');
         assert.equal(result.name, created.name);
       });
 
       it('returns undefined if the environment is unknown', async () => {
-        const result = await element.readEnvironment('some random value');
+        const result = await instance.readEnvironment('some random value');
         assert.isUndefined(result);
       });
     });
 
     describe('deleteEnvironment()', () => {
-      let element = /** @type VariablesModel */ (null);
+      /** @type VariablesModel */
+      let instance;
+      /** @type Element */
+      let et;
       let created = /** @type ARCEnvironment */ (null);
       beforeEach(async () => {
-        const vars = /** @type ARCVariable[] */ (await generator.insertVariablesData({
-          size: 1,
+        const vars = /** @type ARCVariable[] */ (await store.insertVariables(1, {
           randomEnv: true,
         }));
         const entity = {
           name: vars[0].environment,
         };
-        element = await basicFixture();
-        const model = await basicFixture();
+        et = await etFixture();
+        instance = new VariablesModel();
+        instance.listen(et);
+        const model = new VariablesModel();
         const record = await model.updateEnvironment(entity);
         created = record.item;
       });
 
       afterEach(async () => {
-        await generator.destroyVariablesData();
+        await store.destroyVariables();
       });
 
       it('removes an entity from the data store', async () => {
-        await element.deleteEnvironment(created._id);
-        const result = await element.readEnvironment(created.name);
+        await instance.deleteEnvironment(created._id);
+        const result = await instance.readEnvironment(created.name);
         assert.isUndefined(result);
       });
 
       it('returns a delete record', async () => {
-        const result = await element.deleteEnvironment(created._id);
+        const result = await instance.deleteEnvironment(created._id);
         assert.equal(result.id, created._id, 'has the id');
         assert.typeOf(result.rev, 'string', 'has a rev');
         assert.notEqual(result.rev, created._rev, 'has updated rev');
@@ -261,15 +285,15 @@ describe('VariablesModel', () => {
 
       it('dispatches the change event', async () => {
         const spy = sinon.spy();
-        element.addEventListener(ArcModelEventTypes.Environment.State.delete, spy);
-        await element.deleteEnvironment(created._id);
+        instance.addEventListener(ArcModelEventTypes.Environment.State.delete, spy);
+        await instance.deleteEnvironment(created._id);
         assert.isTrue(spy.called);
       });
 
       it('throws when no id', async () => {
         let thrown = false;
         try {
-          await element.deleteEnvironment(undefined);
+          await instance.deleteEnvironment(undefined);
         } catch (e) {
           thrown = true;
         }
@@ -277,13 +301,13 @@ describe('VariablesModel', () => {
       });
 
       it('removes environment variables', async () => {
-        const variable = /** @type ARCVariable */ (generator.generateVariableObject());
+        const variable = generator.variables.variable();
         variable.environment = created.name;
-        const response1 = await element.variableDb.post(variable);
-        await element.deleteEnvironment(created._id);
+        const response1 = await instance.variableDb.post(variable);
+        await instance.deleteEnvironment(created._id);
         let thrown = false;
         try {
-          await element.variableDb.get(response1.id)
+          await instance.variableDb.get(response1.id)
         } catch (e) {
           thrown = true;
         }
@@ -291,58 +315,63 @@ describe('VariablesModel', () => {
       });
 
       it('ignores unknown environments', async () => {
-        await element.deleteEnvironment('other id');
+        await instance.deleteEnvironment('other id');
       });
     });
 
     describe('listEnvironments()', () => {
       before(async () => {
-        const model = await basicFixture();
+        const model = new VariablesModel();
         const items = Array(30).fill(0).map(() => ({
             name: 'a name',
           }));
         await model.environmentDb.bulkDocs(items);
       });
 
-      let element = /** @type VariablesModel */ (null);
+      /** @type VariablesModel */
+      let instance;
+      /** @type Element */
+      let et;
       beforeEach(async () => {
-        element = await basicFixture();
+        et = await etFixture();
+        instance = new VariablesModel();
+        instance.listen(et);
       });
 
       after(async () => {
-        await generator.destroyVariablesData();
+        await store.destroyVariables();
       });
 
       it('returns a query result for default parameters', async () => {
-        const result = await element.listEnvironments();
+        const result = await instance.listEnvironments();
         assert.typeOf(result, 'object', 'result is an object');
         assert.typeOf(result.nextPageToken, 'string', 'has page token');
         assert.typeOf(result.items, 'array', 'has response items');
-        assert.lengthOf(result.items, element.defaultQueryOptions.limit, 'has default limit of items');
+        assert.lengthOf(result.items, instance.defaultQueryOptions.limit, 'has default limit of items');
       });
 
       it('respects "limit" parameter', async () => {
-        const result = await element.listEnvironments({
+        const result = await instance.listEnvironments({
           limit: 5,
         });
         assert.lengthOf(result.items, 5);
       });
 
       it('respects "nextPageToken" parameter', async () => {
-        const result1 = await element.listEnvironments({
+        const result1 = await instance.listEnvironments({
           limit: 10,
         });
-        const result2 = await element.listEnvironments({
+        const result2 = await instance.listEnvironments({
           nextPageToken: result1.nextPageToken,
         });
         assert.lengthOf(result2.items, 20);
       });
 
       it('does not set "nextPageToken" when no more results', async () => {
-        const result1 = await element.listEnvironments({
+        const result1 = await instance.listEnvironments({
           limit: 40,
         });
-        const result2 = await element.listEnvironments({
+        const result2 = await instance.listEnvironments({
           nextPageToken: result1.nextPageToken,
         });
         assert.isUndefined(result2.nextPageToken);
@@ -351,47 +380,57 @@ describe('VariablesModel', () => {
 
     describe('listAllEnvironments()', () => {
       before(async () => {
-        const model = await basicFixture();
+        const model = new VariablesModel();
         const items = Array(32).fill(0).map(() => ({
             name: 'a name',
           }));
         await model.environmentDb.bulkDocs(items);
       });
 
-      let element = /** @type VariablesModel */ (null);
+      /** @type VariablesModel */
+      let instance;
+      /** @type Element */
+      let et;
       beforeEach(async () => {
-        element = await basicFixture();
+        et = await etFixture();
+        instance = new VariablesModel();
+        instance.listen(et);
       });
 
       after(async () => {
-        await generator.destroyVariablesData();
+        await store.destroyVariables();
       });
 
       it('returns model list result', async () => {
-        const result = await element.listAllEnvironments();
+        const result = await instance.listAllEnvironments();
         assert.typeOf(result, 'object', 'is an object');
         assert.typeOf(result.items, 'array', 'has items');
       });
 
       it('returns all items from the data store', async () => {
-        const result = await element.listAllEnvironments();
+        const result = await instance.listAllEnvironments();
         assert.lengthOf(result.items, 32, 'has all results');
       });
     });
 
     describe('updateVariable()', () => {
-      let element = /** @type VariablesModel */ (null);
+      /** @type VariablesModel */
+      let instance;
+      /** @type Element */
+      let et;
       beforeEach(async () => {
-        element = await basicFixture();
+        et = await etFixture();
+        instance = new VariablesModel();
+        instance.listen(et);
       });
 
       after(async () => {
-        await generator.destroyVariablesData();
+        await store.destroyVariables();
       });
 
       it('returns the changelog', async () => {
-        const entity = /** @type ARCVariable */ (generator.generateVariableObject());
-        const result = await element.updateVariable(entity);
+        const entity = generator.variables.variable();
+        const result = await instance.updateVariable(entity);
         assert.typeOf(result, 'object', 'returns an object');
         assert.typeOf(result.id, 'string', 'has an id');
         assert.typeOf(result.rev, 'string', 'has a rev');
@@ -400,9 +439,9 @@ describe('VariablesModel', () => {
       });
 
       it('creates a new variable in the data store', async () => {
-        const entity = /** @type ARCVariable */ (generator.generateVariableObject());
-        const record = await element.updateVariable(entity);
-        const result = await element.variableDb.get(record.id);
+        const entity = generator.variables.variable();
+        const record = await instance.updateVariable(entity);
+        const result = await instance.variableDb.get(record.id);
         assert.typeOf(result, 'object');
         assert.equal(result.name, entity.name);
         assert.equal(result.value, entity.value);
@@ -410,11 +449,11 @@ describe('VariablesModel', () => {
       });
 
       it('throws when no variable', async () => {
-        const entity = /** @type ARCVariable */ (generator.generateVariableObject());
+        const entity = generator.variables.variable();
         delete entity.name;
         let thrown = false;
         try {
-          await element.updateVariable(entity);
+          await instance.updateVariable(entity);
         } catch (e) {
           thrown = true;
         }
@@ -422,19 +461,19 @@ describe('VariablesModel', () => {
       });
 
       it('ignores unknown id', async () => {
-        const entity = /** @type ARCVariable */ (generator.generateVariableObject());
+        const entity = generator.variables.variable();
         entity._id = 'some id';
-        const result = await element.updateVariable(entity);
+        const result = await instance.updateVariable(entity);
         assert.typeOf(result, 'object', 'returns an object');
       });
 
       it('updated existing entity', async () => {
-        const entity = /** @type ARCVariable */ (generator.generateVariableObject());
-        const result1 = await element.updateVariable(entity);
+        const entity = generator.variables.variable();
+        const result1 = await instance.updateVariable(entity);
         entity._id = result1.id;
         entity._rev = result1.rev;
         entity.value = 'other value';
-        const result2 = await element.updateVariable(entity);
+        const result2 = await instance.updateVariable(entity);
         assert.notEqual(result2.rev, result1.rev, 'has different rev');
         assert.equal(result2.id, result1.id, 'has the same id');
         assert.equal(result2.item.value, 'other value', 'has other name');
@@ -442,24 +481,29 @@ describe('VariablesModel', () => {
     });
 
     describe('deleteVariable()', () => {
-      let element = /** @type VariablesModel */ (null);
+      /** @type VariablesModel */
+      let instance;
+      /** @type Element */
+      let et;
       let created = /** @type ARCVariable[] */ (null);
       beforeEach(async () => {
-        element = await basicFixture();
+        et = await etFixture();
+        instance = new VariablesModel();
+        instance.listen(et);
         // @ts-ignore
-        created = await generator.insertVariablesData({
+        created = await store.insertVariables({
           size: 1,
         });
       });
 
       afterEach(async () => {
-        await generator.destroyVariablesData();
+        await store.destroyVariables();
       });
 
       it('throws when no id', async () => {
         let thrown = false;
         try {
-          await element.deleteVariable(undefined);
+          await instance.deleteVariable(undefined);
         } catch (e) {
           thrown = true;
         }
@@ -467,10 +511,10 @@ describe('VariablesModel', () => {
       });
 
       it('deletes a variable from the store', async () => {
-        await element.deleteVariable(created[0]._id);
+        await instance.deleteVariable(created[0]._id);
         let thrown = false;
         try {
-          await element.variableDb.get(created[0]._id);
+          await instance.variableDb.get(created[0]._id);
         } catch (e) {
           thrown = true;
         }
@@ -478,32 +522,37 @@ describe('VariablesModel', () => {
       });
 
       it('returns delete record', async () => {
-        const result = await element.deleteVariable(created[0]._id);
+        const result = await instance.deleteVariable(created[0]._id);
         assert.equal(result.id, created[0]._id);
         assert.typeOf(result.rev, 'string');
       });
 
       it('dispatches the change event', async () => {
         const spy = sinon.spy();
-        element.addEventListener(ArcModelEventTypes.Variable.State.delete, spy);
-        await element.deleteVariable(created[0]._id);
+        instance.addEventListener(ArcModelEventTypes.Variable.State.delete, spy);
+        await instance.deleteVariable(created[0]._id);
         assert.isTrue(spy.called);
       });
     });
 
     describe('listAllVariables()', () => {
-      let element = /** @type VariablesModel */ (null);
+      /** @type VariablesModel */
+      let instance;
+      /** @type Element */
+      let et;
       let created = /** @type ARCVariable[] */ (null);
       beforeEach(async () => {
         // @ts-ignore
-        created = await generator.insertVariablesData({
+        created = await store.insertVariables({
           size: 32,
         });
-        const entity = /** @type ARCVariable */ (generator.generateVariableObject());
+        const entity = generator.variables.variable();
         entity.environment = created[0].environment;
-        element = await basicFixture();
-        await element.updateVariable(entity);
-        await element.updateVariable({
+        et = await etFixture();
+        instance = new VariablesModel();
+        instance.listen(et);
+        await instance.updateVariable(entity);
+        await instance.updateVariable({
           environment: '',
           name: 'x',
           value: 'y',
@@ -512,50 +561,55 @@ describe('VariablesModel', () => {
       });
 
       afterEach(async () => {
-        await generator.destroyVariablesData();
+        await store.destroyVariables();
       });
 
       it('returns no results for unknown environment', async () => {
-        const result = await element.listAllVariables('some unknown environment');
+        const result = await instance.listAllVariables('some unknown environment');
         assert.lengthOf(result.items, 0);
       });
 
       it('returns all results for an environment', async () => {
-        const result = await element.listAllVariables(created[0].environment);
+        const result = await instance.listAllVariables(created[0].environment);
         assert.isAbove(result.items.length, 1);
       });
 
       it('is case insensitive', async () => {
-        const result = await element.listAllVariables(created[0].environment.toUpperCase());
+        const result = await instance.listAllVariables(created[0].environment.toUpperCase());
         assert.isAbove(result.items.length, 1);
       });
 
       it('ignores variables without environment', async () => {
-        const result = await element.listAllVariables('');
+        const result = await instance.listAllVariables('');
         assert.lengthOf(result.items, 0);
       });
     });
 
     describe('listVariables()', () => {
-      let element = /** @type VariablesModel */ (null);
+      /** @type VariablesModel */
+      let instance;
+      /** @type Element */
+      let et;
       let created = /** @type ARCVariable[] */ (null);
       beforeEach(async () => {
         // @ts-ignore
-        created = await generator.insertVariablesData({
+        created = await store.insertVariables({
           size: 32,
         });
-        const entity = /** @type ARCVariable */ (generator.generateVariableObject());
+        const entity = generator.variables.variable();
         entity.environment = created[0].environment;
-        element = await basicFixture();
-        await element.updateVariable(entity);
+        et = await etFixture();
+        instance = new VariablesModel();
+        instance.listen(et);
+        await instance.updateVariable(entity);
       });
 
       afterEach(async () => {
-        await generator.destroyVariablesData();
+        await store.destroyVariables();
       });
 
       it('returns a query result for default parameters', async () => {
-        const result = await element.listVariables(created[0].environment);
+        const result = await instance.listVariables(created[0].environment);
         assert.typeOf(result, 'object', 'result is an object');
         assert.typeOf(result.nextPageToken, 'string', 'has page token');
         assert.typeOf(result.items, 'array', 'has response items');
@@ -563,17 +617,17 @@ describe('VariablesModel', () => {
       });
 
       it('respects "limit" parameter', async () => {
-        const result = await element.listVariables(created[0].environment, {
+        const result = await instance.listVariables(created[0].environment, {
           limit: 3,
         });
         assert.isAtLeast(result.items.length, 2);
       });
 
       it('respects "nextPageToken" parameter', async () => {
-        const result1 = await element.listVariables(created[0].environment, {
+        const result1 = await instance.listVariables(created[0].environment, {
           limit: 1,
         });
-        const result2 = await element.listVariables(created[0].environment, {
+        const result2 = await instance.listVariables(created[0].environment, {
           nextPageToken: result1.nextPageToken,
         });
         assert.isAtLeast(result2.items.length, 1);
@@ -584,9 +638,7 @@ describe('VariablesModel', () => {
      * @returns {Promise<ARCVariable[]>}
      */
     async function generateVarsAndEnvs() {
-      const created = await generator.insertVariablesData({
-        size: 32,
-      });
+      const created = await store.insertVariables(32);
       const items = [];
       created.forEach((variable) => {
         if (variable.environment !== 'default') {
@@ -602,22 +654,27 @@ describe('VariablesModel', () => {
     }
   
     describe('readCurrent()', () => {
-      let element = /** @type VariablesModel */ (null);
+      /** @type VariablesModel */
+      let instance;
+      /** @type Element */
+      let et;
       let created = /** @type ARCVariable[] */ (null);
       before(async () => {
         created = await generateVarsAndEnvs();
       });
 
       after(async () => {
-        await generator.destroyVariablesData();
+        await store.destroyVariables();
       });
 
       beforeEach(async () => {
-        element = await basicFixture();
+        et = await etFixture();
+        instance = new VariablesModel();
+        instance.listen(et);
       });
 
       it('returns default environment', async () => {
-        const result = await element.readCurrent();
+        const result = await instance.readCurrent();
         assert.typeOf(result, 'object', 'result is an object');
         assert.equal(result.environment, null, 'the environment property is not set');
         const defaultVars = created.filter((item) => item.environment === 'default');
@@ -626,9 +683,9 @@ describe('VariablesModel', () => {
 
       it('returns non-default environment', async () => {
         const first = created.find((item) => item.environment !== 'default');
-        const env = await element.readEnvironment(first.environment);
-        element[currentValue] = env._id;
-        const result = await element.readCurrent();
+        const env = await instance.readEnvironment(first.environment);
+        instance[currentValue] = env._id;
+        const result = await instance.readCurrent();
         assert.typeOf(result, 'object', 'result is an object');
         assert.typeOf(result.environment, 'object', 'the environment property is set');
         const defaultVars = created.filter((item) => item.environment === env.name);
@@ -645,27 +702,31 @@ describe('VariablesModel', () => {
     });
 
     describe('setVariable()', () => {
-      let element = /** @type VariablesModel */ (null);
+      /** @type VariablesModel */
+      let instance;
+      /** @type Element */
+      let et;
       let created = /** @type ARCVariable[] */ (null);
       before(async () => {
-        created = await generator.insertVariablesAndEnvironments({ 
-          size: 2,
+        created = await store.insertVariablesAndEnvironments(2, {
           defaultEnv: true,
         });
       });
 
       after(async () => {
-        await generator.destroyVariablesData();
+        await store.destroyVariables();
       });
 
       beforeEach(async () => {
-        element = await basicFixture();
+        et = await etFixture();
+        instance = new VariablesModel();
+        instance.listen(et);
       });
 
       it('creates a new variable', async () => {
-        const record = await element.setVariable('veryRandomVariable', 'with value');
+        const record = await instance.setVariable('veryRandomVariable', 'with value');
         assert.typeOf(record, 'object', 'returns the change record');
-        const result = await element.variableDb.get(record.id);
+        const result = await instance.variableDb.get(record.id);
         assert.typeOf(result, 'object', 'has created variable');
         assert.equal(result.name, 'veryRandomVariable', 'the variable has the name');
         assert.equal(result.value, 'with value', 'the variable has the value');
@@ -673,39 +734,44 @@ describe('VariablesModel', () => {
 
       it('updates existing variable', async () => {
         const { _id, name } = created[0];
-        const record = await element.setVariable(name, 'updated value');
+        const record = await instance.setVariable(name, 'updated value');
         assert.typeOf(record, 'object', 'returns the change record');
         assert.equal(record.id, _id, 'updated the existing variable');
-        const result = await element.variableDb.get(_id);
+        const result = await instance.variableDb.get(_id);
         assert.equal(result.value, 'updated value', 'the variable has the value');
       });
     });
 
     describe('#currentEnvironment', () => {
-      let element = /** @type VariablesModel */ (null);
+      /** @type VariablesModel */
+      let instance;
+      /** @type Element */
+      let et;
       let created = /** @type ARCVariable[] */ (null);
       before(async () => {
         created = await generateVarsAndEnvs();
       });
 
       after(async () => {
-        await generator.destroyVariablesData();
+        await store.destroyVariables();
       });
 
       beforeEach(async () => {
-        element = await basicFixture();
+        et = await etFixture();
+        instance = new VariablesModel();
+        instance.listen(et);
       });
 
       it('returns null when environment is not set', () => {
-        const result = element.currentEnvironment;
+        const result = instance.currentEnvironment;
         assert.equal(result, null);
       });
 
       it('reads the current state and dispatches event when changes', async () => {
         const first = created.find((item) => item.environment !== 'default');
-        const env = await element.readEnvironment(first.environment);
-        element.currentEnvironment = env._id;
-        const e = await oneEvent(element, ArcModelEventTypes.Environment.State.select);
+        const env = await instance.readEnvironment(first.environment);
+        instance.currentEnvironment = env._id;
+        const e = await oneEvent(instance, ArcModelEventTypes.Environment.State.select);
         const { detail } = e;
         assert.typeOf(detail, 'object', 'detail is an object');
         assert.typeOf(detail.environment, 'object', 'the environment property is set');
@@ -715,9 +781,9 @@ describe('VariablesModel', () => {
 
       it('selects an environment via the event', async () => {
         const first = created.find((item) => item.environment !== 'default');
-        const env = await element.readEnvironment(first.environment);
+        const env = await instance.readEnvironment(first.environment);
         ArcModelEvents.Environment.select(document.body, env._id);
-        const e = await oneEvent(element, ArcModelEventTypes.Environment.State.select);
+        const e = await oneEvent(instance, ArcModelEventTypes.Environment.State.select);
         const { detail } = e;
         assert.typeOf(detail, 'object', 'detail is an object');
         assert.typeOf(detail.environment, 'object', 'the environment property is set');

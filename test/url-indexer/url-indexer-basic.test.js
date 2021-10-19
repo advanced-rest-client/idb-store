@@ -1,7 +1,7 @@
-import { fixture, assert } from '@open-wc/testing';
+import { assert } from '@open-wc/testing';
 import { DbHelper } from './db-helper.js';
-import '../../url-indexer.js';
 import {
+  UrlIndexer,
   generateId,
   indexDebounce,
   indexDebounceValue,
@@ -20,16 +20,8 @@ import {
   STORE_VERSION,
 } from '../../src/UrlIndexer.js';
 
-/** @typedef {import('../../src/UrlIndexer').UrlIndexer} UrlIndexer */
 
 describe('UrlIndexer', () => {
-  /**
-   * @return {Promise<UrlIndexer>}
-   */
-  async function basicFixture() {
-    return fixture('<url-indexer></url-indexer>');
-  }
-
   const hasUrlSupport = typeof URL !== 'undefined';
 
   after(async () => {
@@ -37,55 +29,57 @@ describe('UrlIndexer', () => {
   });
 
   describe('openSearchStore()', () => {
-    let element = /** @type UrlIndexer */ (null);
+    /** @type UrlIndexer */
+    let instance;
     beforeEach(async () => {
-      element = await basicFixture();
+      instance = new UrlIndexer(window);
     });
 
     afterEach(async () => {
-      const db = await element.openSearchStore();
+      const db = await instance.openSearchStore();
       db.close();
     });
 
     it('eventually opens the data store', async () => {
-      const result = await element.openSearchStore();
+      const result = await instance.openSearchStore();
       // @ts-ignore
       assert.isTrue(result instanceof window.IDBDatabase);
     });
 
     it('always returns the same database instance', async () => {
-      const db1 = await element.openSearchStore();
-      const db2 = await element.openSearchStore();
+      const db1 = await instance.openSearchStore();
+      const db2 = await instance.openSearchStore();
       assert.isTrue(db1 === db2);
     });
   });
 
   describe('[generateId]()', () => {
-    let element = /** @type UrlIndexer */ (null);
+    /** @type UrlIndexer */
+    let instance;
     const type = 'test-type';
     const url = 'test-url';
 
     beforeEach(async () => {
-      element = await basicFixture();
+      instance = new UrlIndexer(window);
     });
 
     it('Returns a string', () => {
-      const result = element[generateId](url, type);
+      const result = instance[generateId](url, type);
       assert.typeOf(result, 'string');
     });
 
     it('Contains URL', () => {
-      const result = element[generateId](url, type);
+      const result = instance[generateId](url, type);
       assert.equal(result.indexOf(url), 0);
     });
 
     it('Contains type', () => {
-      const result = element[generateId](url, type);
+      const result = instance[generateId](url, type);
       assert.isAbove(result.indexOf(type), 1);
     });
 
     it('Contains uuid', () => {
-      const result = element[generateId](url, type);
+      const result = instance[generateId](url, type);
       const parts = result.split('::');
       assert.typeOf(parts[2], 'string');
     });
@@ -110,75 +104,76 @@ describe('UrlIndexer', () => {
   });
 
   describe('[indexDebounce]()', () => {
-    let element = /** @type UrlIndexer */ (null);
+    /** @type UrlIndexer */
+    let instance;
     const id = 'test-id';
     const url = 'test-url';
     const type = 'test-type';
 
     beforeEach(async () => {
-      element = await basicFixture();
+      instance = new UrlIndexer(window);
     });
 
     it('sets [indexDebounceValue] property', () => {
-      element[indexDebounce](id, url, type);
-      assert.typeOf(element[indexDebounceValue], 'number');
-      clearTimeout(element[indexDebounceValue]);
-      element[indexRequestQueueValue] = [];
+      instance[indexDebounce](id, url, type);
+      assert.typeOf(instance[indexDebounceValue], 'number');
+      clearTimeout(instance[indexDebounceValue]);
+      instance[indexRequestQueueValue] = [];
     });
 
     it('sets [indexRequestQueueValue] property', () => {
-      element[indexDebounce](id, url, type);
-      assert.typeOf(element[indexRequestQueueValue], 'array', 'Array is set');
-      assert.lengthOf(element[indexRequestQueueValue], 1, 'Has single item');
-      clearTimeout(element[indexDebounceValue]);
-      element[indexRequestQueueValue] = [];
+      instance[indexDebounce](id, url, type);
+      assert.typeOf(instance[indexRequestQueueValue], 'array', 'Array is set');
+      assert.lengthOf(instance[indexRequestQueueValue], 1, 'Has single item');
+      clearTimeout(instance[indexDebounceValue]);
+      instance[indexRequestQueueValue] = [];
     });
 
     it('[indexRequestQueueValue] item has all properties', () => {
-      element[indexDebounce](id, url, type);
-      const item = element[indexRequestQueueValue][0];
+      instance[indexDebounce](id, url, type);
+      const item = instance[indexRequestQueueValue][0];
       assert.equal(item.id, id);
       assert.equal(item.url, url);
       assert.equal(item.type, type);
-      clearTimeout(element[indexDebounceValue]);
-      element[indexRequestQueueValue] = [];
+      clearTimeout(instance[indexDebounceValue]);
+      instance[indexRequestQueueValue] = [];
     });
 
     it('Updates URL if the same request is called before queue flush', (done) => {
-      element[indexDebounce](id, url, type);
+      instance[indexDebounce](id, url, type);
       setTimeout(() => {
-        element[indexDebounce](id, 'url-2', 'type-2');
-        const item = element[indexRequestQueueValue][0];
+        instance[indexDebounce](id, 'url-2', 'type-2');
+        const item = instance[indexRequestQueueValue][0];
         assert.equal(item.url, 'url-2');
-        clearTimeout(element[indexDebounceValue]);
-        element[indexRequestQueueValue] = [];
+        clearTimeout(instance[indexDebounceValue]);
+        instance[indexRequestQueueValue] = [];
         done();
       }, 1);
     });
 
     it('Updates type if the same request is called before flush', (done) => {
-      element[indexDebounce](id, url, type);
+      instance[indexDebounce](id, url, type);
       setTimeout(() => {
-        element[indexDebounce](id, 'url-2', 'type-2');
-        const item = element[indexRequestQueueValue][0];
+        instance[indexDebounce](id, 'url-2', 'type-2');
+        const item = instance[indexRequestQueueValue][0];
         assert.equal(item.type, 'type-2');
-        clearTimeout(element[indexDebounceValue]);
-        element[indexRequestQueueValue] = [];
+        clearTimeout(instance[indexDebounceValue]);
+        instance[indexRequestQueueValue] = [];
         done();
       }, 1);
     });
 
     it('Flushes the queue', (done) => {
-      element[indexDebounce](id, url, type);
-      element.index = () => {
+      instance[indexDebounce](id, url, type);
+      instance.index = () => {
         done();
         return Promise.resolve();
       };
     });
 
     it('Calls index with params', (done) => {
-      element[indexDebounce](id, url, type);
-      element.index = (data) => {
+      instance[indexDebounce](id, url, type);
+      instance.index = (data) => {
         assert.typeOf(data, 'array');
         assert.lengthOf(data, 1, 'Has single item');
         done();
@@ -187,8 +182,8 @@ describe('UrlIndexer', () => {
     });
 
     it('Calls index with params', (done) => {
-      element[indexDebounce](id, url, type);
-      element.index = (data) => {
+      instance[indexDebounce](id, url, type);
+      instance.index = (data) => {
         assert.typeOf(data, 'array');
         assert.lengthOf(data, 1, 'Has single item');
         const item = data[0];
@@ -201,18 +196,18 @@ describe('UrlIndexer', () => {
     });
 
     it('clears [indexDebounceValue]', (done) => {
-      element[indexDebounce](id, url, type);
-      element.index = () => {
-        assert.isUndefined(element[indexDebounceValue]);
+      instance[indexDebounce](id, url, type);
+      instance.index = () => {
+        assert.isUndefined(instance[indexDebounceValue]);
         done();
         return Promise.resolve();
       };
     });
 
     it('clears [indexRequestQueueValue]', (done) => {
-      element[indexDebounce](id, url, type);
-      element.index = () => {
-        assert.deepEqual(element[indexRequestQueueValue], []);
+      instance[indexDebounce](id, url, type);
+      instance.index = () => {
+        assert.deepEqual(instance[indexRequestQueueValue], []);
         done();
         return Promise.resolve();
       };
@@ -220,60 +215,61 @@ describe('UrlIndexer', () => {
   });
 
   describe('[deleteIndexDebounce]()', () => {
-    let element = /** @type UrlIndexer */ (null);
+    /** @type UrlIndexer */
+    let instance;
     const id = 'test-id';
     beforeEach(async () => {
-      element = await basicFixture();
+      instance = new UrlIndexer(window);
     });
 
     it('Sets [deleteIndexDebounceValue] property', () => {
-      element[deleteIndexDebounce](id);
-      assert.typeOf(element[deleteIndexDebounceValue], 'number');
-      clearTimeout(element[deleteIndexDebounceValue]);
-      element[deleteRequestQueueValue] = undefined;
+      instance[deleteIndexDebounce](id);
+      assert.typeOf(instance[deleteIndexDebounceValue], 'number');
+      clearTimeout(instance[deleteIndexDebounceValue]);
+      instance[deleteRequestQueueValue] = undefined;
     });
 
     it('Sets [deleteRequestQueueValue] property', () => {
-      element[deleteIndexDebounce](id);
-      assert.typeOf(element[deleteRequestQueueValue], 'array', 'Array is set');
-      assert.lengthOf(element[deleteRequestQueueValue], 1, 'Has single item');
-      clearTimeout(element[deleteIndexDebounceValue]);
-      element[deleteRequestQueueValue] = undefined;
+      instance[deleteIndexDebounce](id);
+      assert.typeOf(instance[deleteRequestQueueValue], 'array', 'Array is set');
+      assert.lengthOf(instance[deleteRequestQueueValue], 1, 'Has single item');
+      clearTimeout(instance[deleteIndexDebounceValue]);
+      instance[deleteRequestQueueValue] = undefined;
     });
 
     it('[deleteRequestQueueValue] item has the id', () => {
-      element[deleteIndexDebounce](id);
-      const result = element[deleteRequestQueueValue][0];
-      clearTimeout(element[deleteIndexDebounceValue]);
-      element[deleteRequestQueueValue] = undefined;
+      instance[deleteIndexDebounce](id);
+      const result = instance[deleteRequestQueueValue][0];
+      clearTimeout(instance[deleteIndexDebounceValue]);
+      instance[deleteRequestQueueValue] = undefined;
       assert.equal(result, id);
     });
 
     it('does nothing if repeats the call', (done) => {
-      element[deleteIndexDebounce](id);
+      instance[deleteIndexDebounce](id);
       setTimeout(() => {
-        element[deleteIndexDebounce](id);
-        assert.typeOf(element[deleteRequestQueueValue], 'array', 'array is set');
-        assert.lengthOf(element[deleteRequestQueueValue], 1, 'has single item');
-        const result = element[deleteRequestQueueValue][0];
+        instance[deleteIndexDebounce](id);
+        assert.typeOf(instance[deleteRequestQueueValue], 'array', 'array is set');
+        assert.lengthOf(instance[deleteRequestQueueValue], 1, 'has single item');
+        const result = instance[deleteRequestQueueValue][0];
         assert.equal(result, id);
-        clearTimeout(element[deleteIndexDebounceValue]);
-        element[deleteRequestQueueValue] = undefined;
+        clearTimeout(instance[deleteIndexDebounceValue]);
+        instance[deleteRequestQueueValue] = undefined;
         done();
       }, 1);
     });
 
     it('flushes the queue', (done) => {
-      element[deleteIndexDebounce](id);
-      element.deleteIndexedData = () => {
+      instance[deleteIndexDebounce](id);
+      instance.deleteIndexedData = () => {
         done();
         return Promise.resolve();
       };
     });
 
     it('Calls deleteIndexedData with params', (done) => {
-      element[deleteIndexDebounce](id);
-      element.deleteIndexedData = (data) => {
+      instance[deleteIndexDebounce](id);
+      instance.deleteIndexedData = (data) => {
         assert.typeOf(data, 'array');
         assert.lengthOf(data, 1, 'Has single item');
         done();
@@ -282,8 +278,8 @@ describe('UrlIndexer', () => {
     });
 
     it('Calls index with params', (done) => {
-      element[deleteIndexDebounce](id);
-      element.deleteIndexedData = (data) => {
+      instance[deleteIndexDebounce](id);
+      instance.deleteIndexedData = (data) => {
         assert.typeOf(data, 'array');
         assert.lengthOf(data, 1, 'Has single item');
         const result = data[0];
@@ -294,18 +290,18 @@ describe('UrlIndexer', () => {
     });
 
     it('clears [deleteIndexDebounce]', (done) => {
-      element[deleteIndexDebounce](id);
-      element.deleteIndexedData = () => {
-        assert.isUndefined(element[deleteIndexDebounceValue]);
+      instance[deleteIndexDebounce](id);
+      instance.deleteIndexedData = () => {
+        assert.isUndefined(instance[deleteIndexDebounceValue]);
         done();
         return Promise.resolve();
       };
     });
 
     it('clears [deleteRequestQueueValue]', (done) => {
-      element[deleteIndexDebounce](id);
-      element.deleteIndexedData = () => {
-        assert.deepEqual(element[deleteRequestQueueValue], []);
+      instance[deleteIndexDebounce](id);
+      instance.deleteIndexedData = () => {
+        assert.deepEqual(instance[deleteRequestQueueValue], []);
         done();
         return Promise.resolve();
       };
@@ -313,10 +309,11 @@ describe('UrlIndexer', () => {
   });
 
   describe('[prepareRequestIndexData]()', () => {
-    let element = /** @type UrlIndexer */ (null);
+    /** @type UrlIndexer */
+    let instance;
     let request;
     beforeEach(async () => {
-      element = await basicFixture();
+      instance = new UrlIndexer(window);
       request = {
         id: 'test-id',
         url: 'https://domain.com/Api/Path?p1=1&p2=2',
@@ -325,17 +322,17 @@ describe('UrlIndexer', () => {
     });
 
     it('Always returns an array', () => {
-      const result = element[prepareRequestIndexData](request, []);
+      const result = instance[prepareRequestIndexData](request, []);
       assert.typeOf(result, 'array');
     });
 
     (hasUrlSupport ? it : it.skip)('returns 8 items', () => {
-      const result = element[prepareRequestIndexData](request, []);
+      const result = instance[prepareRequestIndexData](request, []);
       assert.lengthOf(result, 8);
     });
 
     (hasUrlSupport ? it : it.skip)('skips already indexed items', () => {
-      const result = element[prepareRequestIndexData](request, [
+      const result = instance[prepareRequestIndexData](request, [
         {
           url: 'p1=1&p2=2',
           fullUrl: 0,
@@ -362,7 +359,7 @@ describe('UrlIndexer', () => {
     });
 
     (hasUrlSupport ? it : it.skip)('Items has required structure', () => {
-      const result = element[prepareRequestIndexData](request, []);
+      const result = instance[prepareRequestIndexData](request, []);
       for (let i = 0; i < result.length; i++) {
         const item = result[i];
         assert.equal(item.type, 'saved');
@@ -380,50 +377,51 @@ describe('UrlIndexer', () => {
         url: 'Path?p1=1&p2=2',
         type: 'saved',
       };
-      const result = element[prepareRequestIndexData](rq, []);
+      const result = instance[prepareRequestIndexData](rq, []);
       assert.typeOf(result, 'array');
       assert.lengthOf(result, 0);
     });
   });
 
   describe('[createIndexIfMissing]()', () => {
-    let element = /** @type UrlIndexer */ (null);
+    /** @type UrlIndexer */
+    let instance;
     const id = 'test-id';
     const url = 'test-url';
     const type = 'test-type';
     let indexed;
     beforeEach(async () => {
-      element = await basicFixture();
+      instance = new UrlIndexer(window);
       indexed = [];
     });
 
     it('Creates datastore entry if not exists', () => {
-      const result = element[createIndexIfMissing](url, id, type, indexed);
+      const result = instance[createIndexIfMissing](url, id, type, indexed);
       assert.typeOf(result, 'object');
     });
 
     it('Datastore entry has id', () => {
-      const result = element[createIndexIfMissing](url, id, type, indexed);
+      const result = instance[createIndexIfMissing](url, id, type, indexed);
       assert.typeOf(result.id, 'string');
     });
 
     it('Datastore entry has url', () => {
-      const result = element[createIndexIfMissing](url, id, type, indexed);
+      const result = instance[createIndexIfMissing](url, id, type, indexed);
       assert.equal(result.url, url);
     });
 
     it('Datastore entry has requestId', () => {
-      const result = element[createIndexIfMissing](url, id, type, indexed);
+      const result = instance[createIndexIfMissing](url, id, type, indexed);
       assert.equal(result.requestId, id);
     });
 
     it('Datastore entry has type', () => {
-      const result = element[createIndexIfMissing](url, id, type, indexed);
+      const result = instance[createIndexIfMissing](url, id, type, indexed);
       assert.equal(result.type, type);
     });
 
     it('Datastore entry has fullUrl', () => {
-      const result = element[createIndexIfMissing](url, id, type, indexed);
+      const result = instance[createIndexIfMissing](url, id, type, indexed);
       assert.strictEqual(result.fullUrl, 0);
     });
 
@@ -437,20 +435,21 @@ describe('UrlIndexer', () => {
           type: 'saved',
         },
       ];
-      const result = element[createIndexIfMissing](url, id, type, indexed);
+      const result = instance[createIndexIfMissing](url, id, type, indexed);
       assert.isUndefined(result);
     });
   });
 
   describe('[getUrlObject]()', () => {
-    let element = /** @type UrlIndexer */ (null);
+    /** @type UrlIndexer */
+    let instance;
     const id = 'test-id';
     const url = 'test-url';
     const type = 'test-type';
     let indexed;
     let request;
     beforeEach(async () => {
-      element = await basicFixture();
+      instance = new UrlIndexer(window);
       indexed = [];
       request = {
         id,
@@ -460,7 +459,7 @@ describe('UrlIndexer', () => {
     });
 
     it('creates index entity when not indexed', () => {
-      const result = element[getUrlObject](request, indexed);
+      const result = instance[getUrlObject](request, indexed);
       assert.typeOf(result, 'object');
     });
 
@@ -474,20 +473,21 @@ describe('UrlIndexer', () => {
           type: 'saved',
         },
       ];
-      const result = element[getUrlObject](request, indexed);
+      const result = instance[getUrlObject](request, indexed);
       assert.isUndefined(result);
     });
   });
 
   describe('[getAuthorityPath]()', () => {
-    let element = /** @type UrlIndexer */ (null);
+    /** @type UrlIndexer */
+    let instance;
     const id = 'test-id';
     const requestUrl = 'https://domain.com';
     const type = 'test-type';
     let indexed;
     let parser;
     beforeEach(async () => {
-      element = await basicFixture();
+      instance = new UrlIndexer(window);
       indexed = [];
       parser = new URL(requestUrl);
     });
@@ -496,7 +496,7 @@ describe('UrlIndexer', () => {
       if (!hasUrlSupport) {
         return;
       }
-      const result = element[getAuthorityPath](parser, id, type, indexed);
+      const result = instance[getAuthorityPath](parser, id, type, indexed);
       assert.typeOf(result, 'object');
     });
 
@@ -504,7 +504,7 @@ describe('UrlIndexer', () => {
       if (!hasUrlSupport) {
         return;
       }
-      const { url } = element[getAuthorityPath](parser, id, type, indexed);
+      const { url } = instance[getAuthorityPath](parser, id, type, indexed);
       indexed = [
         {
           url,
@@ -514,20 +514,21 @@ describe('UrlIndexer', () => {
           type: 'saved',
         },
       ];
-      const result = element[getAuthorityPath](parser, id, type, indexed);
+      const result = instance[getAuthorityPath](parser, id, type, indexed);
       assert.isUndefined(result);
     });
   });
 
   describe('[getPathQuery]()', () => {
-    let element = /** @type UrlIndexer */ (null);
+    /** @type UrlIndexer */
+    let instance;
     const id = 'test-id';
     const requestUrl = 'https://domain.com?a=b';
     const type = 'test-type';
     let indexed;
     let parser;
     beforeEach(async () => {
-      element = await basicFixture();
+      instance = new UrlIndexer(window);
       indexed = [];
       parser = new URL(requestUrl);
     });
@@ -536,7 +537,7 @@ describe('UrlIndexer', () => {
       if (!hasUrlSupport) {
         return;
       }
-      const result = element[getPathQuery](parser, id, type, indexed);
+      const result = instance[getPathQuery](parser, id, type, indexed);
       assert.typeOf(result, 'object');
     });
 
@@ -544,7 +545,7 @@ describe('UrlIndexer', () => {
       if (!hasUrlSupport) {
         return;
       }
-      const { url } = element[getPathQuery](parser, id, type, indexed);
+      const { url } = instance[getPathQuery](parser, id, type, indexed);
       indexed = [
         {
           url,
@@ -554,20 +555,21 @@ describe('UrlIndexer', () => {
           type: 'saved',
         },
       ];
-      const result = element[getPathQuery](parser, id, type, indexed);
+      const result = instance[getPathQuery](parser, id, type, indexed);
       assert.isUndefined(result);
     });
   });
 
   describe('[getQueryString]()', () => {
-    let element = /** @type UrlIndexer */ (null);
+    /** @type UrlIndexer */
+    let instance;
     const id = 'test-id';
     const requestUrl = 'https://domain.com?a=b';
     const type = 'test-type';
     let indexed;
     let parser;
     beforeEach(async () => {
-      element = await basicFixture();
+      instance = new UrlIndexer(window);
       indexed = [];
       parser = new URL(requestUrl);
     });
@@ -576,7 +578,7 @@ describe('UrlIndexer', () => {
       if (!hasUrlSupport) {
         return;
       }
-      const result = element[getQueryString](parser, id, type, indexed);
+      const result = instance[getQueryString](parser, id, type, indexed);
       assert.typeOf(result, 'object');
     });
 
@@ -584,7 +586,7 @@ describe('UrlIndexer', () => {
       if (!hasUrlSupport) {
         return;
       }
-      const { url } = element[getQueryString](parser, id, type, indexed);
+      const { url } = instance[getQueryString](parser, id, type, indexed);
       indexed = [
         {
           url,
@@ -594,13 +596,14 @@ describe('UrlIndexer', () => {
           type: 'saved',
         },
       ];
-      const result = element[getQueryString](parser, id, type, indexed);
+      const result = instance[getQueryString](parser, id, type, indexed);
       assert.isUndefined(result);
     });
   });
 
   describe('[appendQueryParams]()', () => {
-    let element = /** @type UrlIndexer */ (null);
+    /** @type UrlIndexer */
+    let instance;
     const id = 'test-id';
     const requestUrl = 'https://domain.com?a=b';
     const type = 'test-type';
@@ -608,7 +611,7 @@ describe('UrlIndexer', () => {
     let parser;
     let target;
     beforeEach(async () => {
-      element = await basicFixture();
+      instance = new UrlIndexer(window);
       indexed = [];
       target = [];
       parser = new URL(requestUrl);
@@ -618,7 +621,7 @@ describe('UrlIndexer', () => {
       if (!hasUrlSupport) {
         return;
       }
-      element[appendQueryParams](parser, id, type, indexed, target);
+      instance[appendQueryParams](parser, id, type, indexed, target);
       assert.lengthOf(target, 2);
     });
 
@@ -626,7 +629,7 @@ describe('UrlIndexer', () => {
       if (!hasUrlSupport) {
         return;
       }
-      element[appendQueryParams](parser, id, type, indexed, target);
+      instance[appendQueryParams](parser, id, type, indexed, target);
       indexed = [
         {
           url: target[0].url,
@@ -644,7 +647,7 @@ describe('UrlIndexer', () => {
         },
       ];
       target = [];
-      element[appendQueryParams](parser, id, type, indexed, target);
+      instance[appendQueryParams](parser, id, type, indexed, target);
       assert.lengthOf(target, 0);
     });
   });

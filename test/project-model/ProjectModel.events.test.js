@@ -1,48 +1,43 @@
 import { fixture, assert } from '@open-wc/testing';
-import { DataGenerator } from '@advanced-rest-client/arc-data-generator';
+import { ArcMock } from '@advanced-rest-client/arc-mock';
 import sinon from 'sinon';
 import { v4 } from '@advanced-rest-client/uuid';
 import { ArcModelEventTypes, ArcModelEvents } from '@advanced-rest-client/events';
-import '../../project-model.js';
-import '../../request-model.js';
+import { MockedStore } from '../../index.js';
+import { RequestModel } from '../../src/RequestModel.js';
+import { ProjectModel } from '../../src/ProjectModel.js';
 
-/** @typedef {import('../../index').ProjectModel} ProjectModel */
-/** @typedef {import('../../index').RequestModel} RequestModel */
 /** @typedef {import('@advanced-rest-client/events').Project.ARCProject} ARCProject */
 /** @typedef {import('@advanced-rest-client/events').ArcRequest.ARCSavedRequest} ARCSavedRequest */
 /** @typedef {import('@advanced-rest-client/events').ArcRequest.ARCHistoryRequest} ARCHistoryRequest */
 /** @typedef {import('@advanced-rest-client/events').Model.ARCEntityChangeRecord} ARCEntityChangeRecord */
 
 describe('ProjectModel', () => {
-  /**
-   * @return {Promise<ProjectModel>}
-   */
-  async function basicFixture() {
-    return fixture('<project-model></project-model>');
+  const store = new MockedStore();
+  const generator = new ArcMock();
+  
+  async function etFixture() {
+    return fixture(`<div></div>`);
   }
-
-  /**
-   * @return {Promise<RequestModel>}
-   */
-  async function requestFixture() {
-    return fixture('<request-model></request-model>');
-  }
-
-  const generator = new DataGenerator();
 
   describe('Events API', () => {
     describe(ArcModelEventTypes.Project.update, () => {
-      let element = /** @type ProjectModel */ (null);
+      /** @type ProjectModel */
+      let instance;
+      /** @type Element */
+      let et;
       beforeEach(async () => {
-        element = await basicFixture();
+        et = await etFixture();
+        instance = new ProjectModel();
+        instance.listen(et);
       });
 
       after(async () => {
-        await generator.destroySavedRequestData();
+        await store.destroySaved();
       });
 
       it('returns an insert result', async () => {
-        const project = /** @type ARCProject */ (generator.createProjectObject());
+        const project = generator.http.project();
         const result = await ArcModelEvents.Project.update(document.body, project);
         assert.typeOf(result, 'object', 'returns an object');
         assert.typeOf(result.id, 'string', 'has an id');
@@ -52,8 +47,8 @@ describe('ProjectModel', () => {
       });
 
       it('calls post() function', async () => {
-        const spy = sinon.spy(element, 'post');
-        const project = /** @type ARCProject */ (generator.createProjectObject());
+        const spy = sinon.spy(instance, 'post');
+        const project = generator.http.project();
         await ArcModelEvents.Project.update(document.body, project);
         assert.isTrue(spy.called);
       });
@@ -74,17 +69,22 @@ describe('ProjectModel', () => {
     });
 
     describe(ArcModelEventTypes.Project.updateBulk, () => {
-      let element = /** @type ProjectModel */ (null);
+      /** @type ProjectModel */
+      let instance;
+      /** @type Element */
+      let et;
       beforeEach(async () => {
-        element = await basicFixture();
+        et = await etFixture();
+        instance = new ProjectModel();
+        instance.listen(et);
       });
 
       after(async () => {
-        await generator.destroySavedRequestData();
+        await store.destroySaved();
       });
 
       it('returns a list of insert result', async () => {
-        const projects = /** @type ARCProject[] */ (generator.generateProjects({ projectsSize: 2 }));
+        const projects = generator.http.listProjects();
         const results = await ArcModelEvents.Project.updateBulk(document.body, projects);
         assert.typeOf(results, 'array', 'returns an array');
         assert.lengthOf(results, 2, 'returns an array');
@@ -96,8 +96,8 @@ describe('ProjectModel', () => {
       });
 
       it('calls postBulk() function', async () => {
-        const spy = sinon.spy(element, 'postBulk');
-        const projects = /** @type ARCProject[] */ (generator.generateProjects({ projectsSize: 2 }));
+        const spy = sinon.spy(instance, 'postBulk');
+        const projects = generator.http.listProjects();
         await ArcModelEvents.Project.updateBulk(document.body, projects);
         assert.isTrue(spy.called);
       });
@@ -120,19 +120,26 @@ describe('ProjectModel', () => {
     describe(ArcModelEventTypes.Project.read, () => {
       let created = /** @type ARCProject[] */ (null);
       before(async () => {
-        const model = await basicFixture();
-        const projects = /** @type ARCProject[] */ (generator.generateProjects({ projectsSize: 2 }));
-        const results = await model.postBulk(projects);
+        const et = await etFixture();
+        const instance = new ProjectModel();
+        instance.listen(et);
+        const projects = generator.http.listProjects();
+        const results = await instance.postBulk(projects);
         created = results.map((item) => item.item);
       });
 
-      let element = /** @type ProjectModel */ (null);
+      /** @type ProjectModel */
+      let instance;
+      /** @type Element */
+      let et;
       beforeEach(async () => {
-        element = await basicFixture();
+        et = await etFixture();
+        instance = new ProjectModel();
+        instance.listen(et);
       });
 
       after(async () => {
-        await generator.destroySavedRequestData();
+        await store.destroySaved();
       });
 
       it('returns an item with the latest revision', async () => {
@@ -141,7 +148,7 @@ describe('ProjectModel', () => {
       });
 
       it('calls readProject() function', async () => {
-        const spy = sinon.spy(element, 'readProject');
+        const spy = sinon.spy(instance, 'readProject');
         await ArcModelEvents.Project.read(document.body, created[0]._id);
         assert.isTrue(spy.called);
       });
@@ -164,26 +171,33 @@ describe('ProjectModel', () => {
     describe(ArcModelEventTypes.Project.readBulk, () => {
       let created = /** @type ARCProject[] */ (null);
       before(async () => {
-        const model = await basicFixture();
-        const projects = /** @type ARCProject[] */ (generator.generateProjects({ projectsSize: 5 }));
-        const results = await model.postBulk(projects);
+        const et = await etFixture();
+        const instance = new ProjectModel();
+        instance.listen(et);
+        const projects = generator.http.listProjects(5);
+        const results = await instance.postBulk(projects);
         created = results.map((item) => item.item);
       });
 
-      let element = /** @type ProjectModel */ (null);
+      /** @type ProjectModel */
+      let instance;
+      /** @type Element */
+      let et;
       beforeEach(async () => {
-        element = await basicFixture();
+        et = await etFixture();
+        instance = new ProjectModel();
+        instance.listen(et);
       });
 
       after(async () => {
-        await generator.destroySavedRequestData();
+        await store.destroySaved();
       });
 
       it('returns the list of requested items', async () => {
         const ids = [created[0]._id, created[1]._id];
         const result = await ArcModelEvents.Project.readBulk(document.body, ids);
-        const p1 = await element.get(created[0]._id);
-        const p2 = await element.get(created[1]._id);
+        const p1 = await instance.get(created[0]._id);
+        const p2 = await instance.get(created[1]._id);
         assert.deepEqual(result[0], p1);
         assert.deepEqual(result[1], p2);
       });
@@ -205,18 +219,25 @@ describe('ProjectModel', () => {
 
     describe(ArcModelEventTypes.Project.list, () => {
       before(async () => {
-        const model = await basicFixture();
-        const projects = /** @type ARCProject[] */ (generator.generateProjects({ projectsSize: 30 }));
-        await model.postBulk(projects);
+        const et = await etFixture();
+        const instance = new ProjectModel();
+        instance.listen(et);
+        const projects = generator.http.listProjects(30);
+        await instance.postBulk(projects);
       });
 
-      let element = /** @type ProjectModel */ (null);
+      /** @type ProjectModel */
+      let instance;
+      /** @type Element */
+      let et;
       beforeEach(async () => {
-        element = await basicFixture();
+        et = await etFixture();
+        instance = new ProjectModel();
+        instance.listen(et);
       });
 
       after(async () => {
-        await generator.destroySavedRequestData();
+        await store.destroySaved();
       });
 
       it('returns a list result for default parameters', async () => {
@@ -224,11 +245,11 @@ describe('ProjectModel', () => {
         assert.typeOf(result, 'object', 'result is an object');
         assert.typeOf(result.nextPageToken, 'string', 'has page token');
         assert.typeOf(result.items, 'array', 'has response items');
-        assert.lengthOf(result.items, element.defaultQueryOptions.limit, 'has default limit of items');
+        assert.lengthOf(result.items, instance.defaultQueryOptions.limit, 'has default limit of items');
       });
 
       it('calls list() function', async () => {
-        const spy = sinon.spy(element, 'list');
+        const spy = sinon.spy(instance, 'list');
         await ArcModelEvents.Project.list(document.body);
         assert.isTrue(spy.called);
       });
@@ -251,17 +272,26 @@ describe('ProjectModel', () => {
     describe(`${ArcModelEventTypes.Project.listAll} event`, () => {
       let created;
       before(async () => {
-        const model = await basicFixture();
-        const projects = /** @type ARCProject[] */ (generator.generateProjects({ projectsSize: 30 }));
-        created = await model.postBulk(projects);
+        const et = await etFixture();
+        const instance = new ProjectModel();
+        instance.listen(et);
+        const projects = generator.http.listProjects(30);
+        created = await instance.postBulk(projects);
       });
 
+      /** @type ProjectModel */
+      let instance;
+      /** @type Element */
+      let et;
+
       beforeEach(async () => {
-        await basicFixture();
+        et = await etFixture();
+        instance = new ProjectModel();
+        instance.listen(et);
       });
 
       after(async () => {
-        await generator.destroySavedRequestData();
+        await store.destroySaved();
       });
 
       it('returns all projects', async () => {
@@ -283,7 +313,7 @@ describe('ProjectModel', () => {
       });
 
       it('returns empty array when empty', async () => {
-        await generator.destroySavedRequestData();
+        await store.destroySaved();
         const result = await ArcModelEvents.Project.listAll(document.body);
         assert.typeOf(result, 'array', 'result is an array');
         assert.lengthOf(result, 0, 'has no results');
@@ -293,18 +323,25 @@ describe('ProjectModel', () => {
     describe(ArcModelEventTypes.Project.delete, () => {
       let created = /** @type ARCEntityChangeRecord[] */ (null);
       before(async () => {
-        const model = await basicFixture();
-        const projects = /** @type ARCProject[] */ (generator.generateProjects({ projectsSize: 30 }));
-        created = await model.postBulk(projects);
+        const et = await etFixture();
+        const instance = new ProjectModel();
+        instance.listen(et);
+        const projects = generator.http.listProjects(30);
+        created = await instance.postBulk(projects);
       });
 
-      let model = /** @type ProjectModel */ (null);
+      /** @type ProjectModel */
+      let instance;
+      /** @type Element */
+      let et;
       beforeEach(async () => {
-        model = await basicFixture();
+        et = await etFixture();
+        instance = new ProjectModel();
+        instance.listen(et);
       });
 
       after(async () => {
-        await generator.destroySavedRequestData();
+        await store.destroySaved();
       });
 
       it('deletes an entity', async () => {
@@ -313,7 +350,7 @@ describe('ProjectModel', () => {
         await ArcModelEvents.Project.delete(document.body, id);
         let thrown = false;
         try {
-          await model.get(id);
+          await instance.get(id);
         } catch (e) {
           thrown = true;
         }
@@ -323,7 +360,7 @@ describe('ProjectModel', () => {
       it('calls removeProject() function', async () => {
         const info = created[1];
         const { id } = info;
-        const spy = sinon.spy(model, 'removeProject');
+        const spy = sinon.spy(instance, 'removeProject');
         await ArcModelEvents.Project.delete(document.body, id);
         assert.isTrue(spy.called);
       });
@@ -344,21 +381,28 @@ describe('ProjectModel', () => {
     });
   
     describe(`${ArcModelEventTypes.Project.addTo} event`, () => {
-      let projectModel = /** @type ProjectModel */ (null);
-      let requestModel = /** @type RequestModel */ (null);
+      /** @type ProjectModel */
+      let instance;
+      /** @type Element */
+      let et;
+      /** @type RequestModel */
+      let requestModel;
       beforeEach(async () => {
-        projectModel = await basicFixture();
-        requestModel = await requestFixture();
+        et = await etFixture();
+        instance = new ProjectModel();
+        instance.listen(et);
+        requestModel = new RequestModel(); 
+        requestModel.listen(et);
       });
 
       after(async () => {
-        await generator.destroySavedRequestData();
+        await store.destroySaved();
       });
 
       it('adds request to a project', async () => {
-        const request = /** @type ARCSavedRequest */ (generator.generateSavedItem());
-        const project = /** @type ARCProject */ (generator.createProjectObject());
-        const pRecord = await projectModel.updateProject(project);
+        const request = generator.http.saved();
+        const project = generator.http.project();
+        const pRecord = await instance.updateProject(project);
         const rRecord = await requestModel.post('saved', request);
 
         await ArcModelEvents.Project.addTo(document.body, pRecord.id, rRecord.id, 'saved');
@@ -369,96 +413,103 @@ describe('ProjectModel', () => {
       });
   
       it('adds project to the request', async () => {
-        const request = /** @type ARCSavedRequest */ (generator.generateSavedItem());
-        const project = /** @type ARCProject */ (generator.createProjectObject());
-        const pRecord = await projectModel.updateProject(project);
+        const request = generator.http.saved();
+        const project = generator.http.project();
+        const pRecord = await instance.updateProject(project);
         const rRecord = await requestModel.post('saved', request);
         
         await ArcModelEvents.Project.addTo(document.body, pRecord.id, rRecord.id, 'saved');
 
-        const dbProject = await projectModel.get(pRecord.id);
+        const dbProject = await instance.get(pRecord.id);
         const { requests } = dbProject;
         assert.deepEqual(requests, [rRecord.id]);
       });
 
       it('adds request to a project at specified position', async () => {
-        const request = /** @type ARCSavedRequest */ (generator.generateSavedItem());
+        const request = generator.http.saved();
         request._id = v4();
-        const project = /** @type ARCProject */ (generator.createProjectObject());
+        const project = generator.http.project();
         project._id = v4();
         project.requests = ['a', 'b', 'c', 'd', 'e'];
-        await projectModel.updateProject(project);
+        await instance.updateProject(project);
         await requestModel.post('saved', request);
         
         await ArcModelEvents.Project.addTo(document.body, project._id, request._id, 'saved', 2);
 
-        const dbProject = await projectModel.get(project._id);
+        const dbProject = await instance.get(project._id);
         const { requests } = dbProject;
         assert.deepEqual(requests, ['a', 'b', request._id, 'c', 'd', 'e']);
       });
     });
 
     describe(`${ArcModelEventTypes.Project.moveTo} event`, () => {
-      let projectModel = /** @type ProjectModel */ (null);
-      let requestModel = /** @type RequestModel */ (null);
+      /** @type ProjectModel */
+      let instance;
+      /** @type Element */
+      let et;
+      /** @type RequestModel */
+      let requestModel;
       beforeEach(async () => {
-        projectModel = await basicFixture();
-        requestModel = await requestFixture();
+        et = await etFixture();
+        instance = new ProjectModel();
+        instance.listen(et);
+        requestModel = new RequestModel(); 
+        requestModel.listen(et);
       });
 
       after(async () => {
-        await generator.destroySavedRequestData();
+        await store.destroySaved();
       });
 
       it('removes the request from an existing projects', async () => {
-        const request = /** @type ARCSavedRequest */ (generator.generateSavedItem());
+        const request = generator.http.saved();
         request._id = v4();
-        const sourceProject = /** @type ARCProject */ (generator.createProjectObject());
+        const sourceProject = generator.http.project();
         sourceProject._id = v4();
-        const targetProject = /** @type ARCProject */ (generator.createProjectObject());
+        const targetProject = generator.http.project();
         targetProject._id = v4();
         sourceProject.requests = [request._id];
         request.projects = [sourceProject._id];
-        await projectModel.updateProject(sourceProject);
-        await projectModel.updateProject(targetProject);
+        await instance.updateProject(sourceProject);
+        await instance.updateProject(targetProject);
         await requestModel.post('saved', request);
 
         await ArcModelEvents.Project.moveTo(document.body, targetProject._id, request._id, 'saved');
 
-        const project = await projectModel.get(sourceProject._id);
+        const project = await instance.get(sourceProject._id);
         assert.deepEqual(project.requests, []);
       });
   
       it('adds the request to another project', async () => {
-        const request = /** @type ARCSavedRequest */ (generator.generateSavedItem());
+        const request = generator.http.saved();
         request._id = v4();
-        const sourceProject = /** @type ARCProject */ (generator.createProjectObject());
+        const sourceProject = generator.http.project();
         sourceProject._id = v4();
-        const targetProject = /** @type ARCProject */ (generator.createProjectObject());
+        const targetProject = generator.http.project();
         targetProject._id = v4();
         sourceProject.requests = [request._id];
         request.projects = [sourceProject._id];
-        await projectModel.updateProject(sourceProject);
-        await projectModel.updateProject(targetProject);
+        await instance.updateProject(sourceProject);
+        await instance.updateProject(targetProject);
         await requestModel.post('saved', request);
         
         await ArcModelEvents.Project.moveTo(document.body, targetProject._id, request._id, 'saved');
 
-        const project = await projectModel.get(targetProject._id);
+        const project = await instance.get(targetProject._id);
         assert.deepEqual(project.requests, [request._id]);
       });
   
       it('replaces projects in the request', async () => {
-        const request = /** @type ARCSavedRequest */ (generator.generateSavedItem());
+        const request = generator.http.saved();
         request._id = v4();
-        const sourceProject = /** @type ARCProject */ (generator.createProjectObject());
+        const sourceProject = generator.http.project();
         sourceProject._id = v4();
-        const targetProject = /** @type ARCProject */ (generator.createProjectObject());
+        const targetProject = generator.http.project();
         targetProject._id = v4();
         sourceProject.requests = [request._id];
         request.projects = [sourceProject._id];
-        await projectModel.updateProject(sourceProject);
-        await projectModel.updateProject(targetProject);
+        await instance.updateProject(sourceProject);
+        await instance.updateProject(targetProject);
         await requestModel.post('saved', request);
         
         await ArcModelEvents.Project.moveTo(document.body, targetProject._id, request._id, 'saved');
@@ -468,62 +519,69 @@ describe('ProjectModel', () => {
       });
 
       it('adds the request at specific position', async () => {
-        const request = /** @type ARCSavedRequest */ (generator.generateSavedItem());
+        const request = generator.http.saved();
         request._id = v4();
-        const sourceProject = /** @type ARCProject */ (generator.createProjectObject());
+        const sourceProject = generator.http.project();
         sourceProject._id = v4();
-        const targetProject = /** @type ARCProject */ (generator.createProjectObject());
+        const targetProject = generator.http.project();
         targetProject._id = v4();
         sourceProject.requests = [request._id];
         targetProject.requests = ['a', 'b', 'c', 'd', 'e'];
         request.projects = [sourceProject._id];
-        await projectModel.updateProject(sourceProject);
-        await projectModel.updateProject(targetProject);
+        await instance.updateProject(sourceProject);
+        await instance.updateProject(targetProject);
         await requestModel.post('saved', request);
   
         await ArcModelEvents.Project.moveTo(document.body, targetProject._id, request._id, 'saved', 3);
         
-        const project = await projectModel.get(targetProject._id);
+        const project = await instance.get(targetProject._id);
         assert.deepEqual(project.requests, ['a', 'b', 'c', request._id, 'd', 'e']);
       });
     });
   
     describe(`${ArcModelEventTypes.Project.removeFrom} event`, () => {
-      let projectModel = /** @type ProjectModel */ (null);
-      let requestModel = /** @type RequestModel */ (null);
+      /** @type ProjectModel */
+      let instance;
+      /** @type Element */
+      let et;
+      /** @type RequestModel */
+      let requestModel;
       beforeEach(async () => {
-        projectModel = await basicFixture();
-        requestModel = await requestFixture();
+        et = await etFixture();
+        instance = new ProjectModel();
+        instance.listen(et);
+        requestModel = new RequestModel(); 
+        requestModel.listen(et);
       });
 
       after(async () => {
-        await generator.destroySavedRequestData();
+        await store.destroySaved();
       });
 
       it('removes the request from a projects', async () => {
-        const request = /** @type ARCSavedRequest */ (generator.generateSavedItem());
+        const request = generator.http.saved();
         request._id = v4();
-        const sourceProject = /** @type ARCProject */ (generator.createProjectObject());
+        const sourceProject = generator.http.project();
         sourceProject._id = v4();
         sourceProject.requests = [request._id];
         request.projects = [sourceProject._id];
-        await projectModel.updateProject(sourceProject);
+        await instance.updateProject(sourceProject);
         await requestModel.post('saved', request);
 
         await ArcModelEvents.Project.removeFrom(document.body, sourceProject._id, request._id);
 
-        const project = await projectModel.get(sourceProject._id);
+        const project = await instance.get(sourceProject._id);
         assert.deepEqual(project.requests, []);
       });
   
       it('removes the project from the request', async () => {
-        const request = /** @type ARCSavedRequest */ (generator.generateSavedItem());
+        const request = generator.http.saved();
         request._id = v4();
-        const sourceProject = /** @type ARCProject */ (generator.createProjectObject());
+        const sourceProject = generator.http.project();
         sourceProject._id = v4();
         sourceProject.requests = [request._id];
         request.projects = [sourceProject._id];
-        await projectModel.updateProject(sourceProject);
+        await instance.updateProject(sourceProject);
         await requestModel.post('saved', request);
         
         await ArcModelEvents.Project.removeFrom(document.body, sourceProject._id, request._id);

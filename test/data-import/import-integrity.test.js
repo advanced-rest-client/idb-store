@@ -1,11 +1,11 @@
 import { assert } from '@open-wc/testing';
-import { DataGenerator } from '@advanced-rest-client/arc-data-generator';
 import { DataTestHelper } from './DataTestHelper.js';
 import { ImportNormalize } from '../../src/lib/ImportNormalize.js';
 import { ImportFactory } from '../../src/lib/ImportFactory.js';
+import { MockedStore } from '../../index.js';
 
 describe('Data integrity test', () => {
-  const generator = new DataGenerator();
+  const store = new MockedStore();
 
   before(async () => {
     const data = await DataTestHelper.getFile('arc-13-data-export-2-2-2019.json');
@@ -16,12 +16,12 @@ describe('Data integrity test', () => {
     assert.isUndefined(errors);
   });
 
-  after(() => generator.destroyAll());
+  after(() => store.destroyAll());
 
   describe('request data integrity', () => {
     let requests;
     before(async () => {
-      requests = await generator.getDatastoreRequestData();
+      requests = await store.getDatastoreRequestData();
       requests.sort((a, b) => {
         if (a.created > b.created) {
           return 1;
@@ -202,7 +202,7 @@ describe('Data integrity test', () => {
   describe('Projects data integrity', () => {
     let projects;
     before(async () => {
-      projects = await generator.getDatastoreProjectsData();
+      projects = await store.getDatastoreProjectsData();
       projects.sort((a, b) => {
         if (a.created > b.created) {
           return 1;
@@ -315,7 +315,7 @@ describe('Data integrity test', () => {
   describe('History data integrity', () => {
     let history;
     before(async () => {
-      history = await generator.getDatastoreHistoryData();
+      history = await store.getDatastoreHistoryData();
       history.sort((a, b) => {
         if (a.created > b.created) {
           return 1;

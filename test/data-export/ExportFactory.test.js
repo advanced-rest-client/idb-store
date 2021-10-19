@@ -1,14 +1,15 @@
 import { assert } from '@open-wc/testing';
-import 'chance/dist/chance.min.js';
-import { DataGenerator } from '@advanced-rest-client/arc-data-generator';
+import { ArcMock } from '@advanced-rest-client/arc-mock';
 import { ExportFactory } from '../../src/lib/ExportFactory.js';
+import { MockedStore } from '../../index.js'
 
 /* global PouchDB */
 /** @typedef {import('@advanced-rest-client/events').ArcRequest.ARCSavedRequest} ARCSavedRequest */
 /** @typedef {import('@advanced-rest-client/events').ArcRequest.ARCHistoryRequest} ARCHistoryRequest */
 
 describe('ExportFactory', () => {
-  const generator = new DataGenerator();
+  const generator = new ArcMock();
+  const store = new MockedStore();
 
   describe('getExportData()', () => {
     function getData(result, dataName) {
@@ -18,15 +19,13 @@ describe('ExportFactory', () => {
 
     describe('Request data', () => {
       before(async () => {
-        await generator.insertSavedRequestData({
-          requestsSize: 100,
-          projectsSize: 50,
+        await store.insertSaved(100, 50, {
           forceProject: true,
         });
       });
 
       after(async () => {
-        await generator.destroySavedRequestData();
+        await store.destroySaved();
       });
 
       let factory = /** @type ExportFactory */ (null);
@@ -75,18 +74,6 @@ describe('ExportFactory', () => {
         assert.typeOf(project.name, 'string', 'has the name');
       });
 
-      it('gets large amount of data', async () => {
-        await generator.insertSavedRequestData({
-          requestsSize: 2000,
-          projectsSize: 1,
-        });
-        const result = await factory.getExportData({
-          requests: true,
-        });
-        const requests = getData(result, 'requests');
-        assert.lengthOf(requests, 2100, 'has all requests');
-      });
-
       it('transforms legacy authorization to new authorization object', async () => {
         const db = new PouchDB('saved-requests');
         const response = await db.allDocs({
@@ -113,13 +100,11 @@ describe('ExportFactory', () => {
 
     describe('Projects data', () => {
       before(async () => {
-        await generator.insertProjectsData({
-          projectsSize: 100,
-        });
+        await store.insertProjects(100);
       });
 
       after(async () => {
-        await generator.clearLegacyProjects();
+        await store.clearLegacyProjects();
       });
 
       let factory = /** @type ExportFactory */ (null);
@@ -146,28 +131,15 @@ describe('ExportFactory', () => {
         assert.typeOf(project._rev, 'string', 'has the _rev');
         assert.typeOf(project.name, 'string', 'has the name');
       });
-
-      it('gets large amount of data', async () => {
-        await generator.insertProjectsData({
-          projectsSize: 2000,
-        });
-        const result = await factory.getExportData({
-          projects: true,
-        });
-        const projects = getData(result, 'projects');
-        assert.lengthOf(projects, 2100, 'has all requests');
-      });
     });
 
     describe('History data', () => {
       before(async () => {
-        await generator.insertHistoryRequestData({
-          requestsSize: 100,
-        });
+        await store.insertHistory(100);
       });
 
       after(async () => {
-        await generator.destroyHistoryData();
+        await store.destroyHistory();
       });
 
       let factory = /** @type ExportFactory */ (null);
@@ -193,17 +165,6 @@ describe('ExportFactory', () => {
         assert.typeOf(item._id, 'string', 'has the _id');
         assert.typeOf(item._rev, 'string', 'has the _rev');
         assert.isUndefined(item.name, 'has no name');
-      });
-
-      it('gets large amount of data', async () => {
-        await generator.insertHistoryRequestData({
-          requestsSize: 2000,
-        });
-        const result = await factory.getExportData({
-          history: true,
-        });
-        const projects = getData(result, 'history');
-        assert.lengthOf(projects, 2100, 'has all requests');
       });
 
       it('transforms legacy authorization to new authorization object', async () => {
@@ -232,13 +193,11 @@ describe('ExportFactory', () => {
 
     describe('Auth data', () => {
       before(async () => {
-        await generator.insertBasicAuthData({
-          size: 100,
-        });
+        await store.insertBasicAuth(100);
       });
 
       after(async () => {
-        await generator.destroyAuthData();
+        await store.destroyBasicAuth();
       });
 
       let factory = /** @type ExportFactory */ (null);
@@ -265,28 +224,15 @@ describe('ExportFactory', () => {
         assert.typeOf(item._rev, 'string', 'has the _rev');
         assert.equal(item.type, 'basic', 'has type property');
       });
-
-      it('gets large amount of data', async () => {
-        await generator.insertBasicAuthData({
-          size: 2000,
-        });
-        const result = await factory.getExportData({
-          authdata: true,
-        });
-        const authdata = getData(result, 'authdata');
-        assert.lengthOf(authdata, 2100, 'has all items');
-      });
     });
 
     describe('Websocket history data', () => {
       before(async () => {
-        await generator.insertWebsocketData({
-          size: 100,
-        });
+        await store.insertWebsockets(100);
       });
 
       after(async () => {
-        await generator.destroyWebsocketsData();
+        await store.destroyWebsockets();
       });
 
       let factory = /** @type ExportFactory */ (null);
@@ -313,28 +259,15 @@ describe('ExportFactory', () => {
         assert.typeOf(item._rev, 'string', 'has the _rev');
         assert.typeOf(item.cnt, 'number', 'has cnt property');
       });
-
-      it('gets large amount of data', async () => {
-        await generator.insertWebsocketData({
-          size: 2000,
-        });
-        const result = await factory.getExportData({
-          websocketurlhistory: true,
-        });
-        const data = getData(result, 'websocketurlhistory');
-        assert.lengthOf(data, 2100);
-      });
     });
 
     describe('URL history data', () => {
       before(async () => {
-        await generator.insertUrlHistoryData({
-          size: 100,
-        });
+        await store.insertUrlHistory(100);
       });
 
       after(async () => {
-        await generator.destroyUrlData();
+        await store.destroyUrlHistory();
       });
 
       let factory = /** @type ExportFactory */ (null);
@@ -361,28 +294,15 @@ describe('ExportFactory', () => {
         assert.typeOf(item._rev, 'string', 'has the _rev');
         assert.typeOf(item.cnt, 'number', 'has cnt property');
       });
-
-      it('gets large amount of data', async () => {
-        await generator.insertUrlHistoryData({
-          size: 2000,
-        });
-        const result = await factory.getExportData({
-          urlhistory: true,
-        });
-        const data = getData(result, 'urlhistory');
-        assert.lengthOf(data, 2100);
-      });
     });
 
     describe('Client certificates data', () => {
       before(async () => {
-        await generator.insertCertificatesData({
-          size: 100,
-        });
+        await store.insertCertificates(100);
       });
 
       after(async () => {
-        await generator.destroyClientCertificates();
+        await store.destroyClientCertificates();
       });
 
       let factory = /** @type ExportFactory */ (null);
@@ -411,28 +331,15 @@ describe('ExportFactory', () => {
         assert.typeOf(item._rev, 'string', 'has the _rev');
         assert.typeOf(certData.cert, 'object', 'has cert property');
       });
-
-      it('gets large amount of data', async () => {
-        await generator.insertCertificatesData({
-          size: 200,
-        });
-        const result = await factory.getExportData({
-          clientcertificates: true,
-        });
-        const data = getData(result, 'clientcertificates');
-        assert.lengthOf(data, 300);
-      });
     });
 
     describe('Host rules data', () => {
       before(async () => {
-        await generator.insertHostRulesData({
-          size: 100,
-        });
+        await store.insertHostRules(100);
       });
 
       after(async () => {
-        await generator.destroyHostRulesData();
+        await store.destroyHostRules();
       });
 
       let factory = /** @type ExportFactory */ (null);
@@ -460,28 +367,15 @@ describe('ExportFactory', () => {
         assert.typeOf(item._rev, 'string', 'has the _rev');
         assert.typeOf(item.from, 'string', 'has from property');
       });
-
-      it('gets large amount of data', async () => {
-        await generator.insertHostRulesData({
-          size: 2000,
-        });
-        const result = await factory.getExportData({
-          hostrules: true,
-        });
-        const data = getData(result, 'hostrules');
-        assert.lengthOf(data, 2100);
-      });
     });
 
     describe('Variables data', () => {
       before(async () => {
-        await generator.insertVariablesData({
-          size: 100,
-        });
+        await store.insertVariables(100);
       });
 
       after(async () => {
-        await generator.destroyVariablesData();
+        await store.destroyVariables();
       });
 
       let factory = /** @type ExportFactory */ (null);
@@ -509,28 +403,15 @@ describe('ExportFactory', () => {
         assert.typeOf(item._rev, 'string', 'has the _rev');
         assert.typeOf(item.name, 'string', 'has name property');
       });
-
-      it('gets large amount of data', async () => {
-        await generator.insertVariablesData({
-          size: 2000,
-        });
-        const result = await factory.getExportData({
-          variables: true,
-        });
-        const data = getData(result, 'variables');
-        assert.lengthOf(data, 2100);
-      });
     });
 
     describe('Cookies (via datastore) data', () => {
       before(async () => {
-        await generator.insertCookiesData({
-          size: 100,
-        });
+        await store.insertCookies(100);
       });
 
       after(async () => {
-        await generator.destroyCookiesData();
+        await store.destroyCookies();
       });
 
       let factory = /** @type ExportFactory */ (null);
@@ -558,37 +439,20 @@ describe('ExportFactory', () => {
         assert.typeOf(item._rev, 'string', 'has the _rev');
         assert.typeOf(item.expires, 'number', 'has variable property');
       });
-
-      it('gets large amount of data', async () => {
-        await generator.insertCookiesData({
-          size: 2000,
-        });
-        const result = await factory.getExportData({
-          cookies: true,
-        });
-        const data = getData(result, 'cookies');
-        assert.lengthOf(data, 2100);
-      });
     });
   });
 
   describe('prepareExportData()', () => {
     before(async () => {
-      await generator.insertCookiesData({
-        size: 10,
-      });
-      await generator.insertCertificatesData({
-        size: 10,
-      });
-      await generator.insertUrlHistoryData({
-        size: 10,
-      });
+      await store.insertCookies(10);
+      await store.insertCertificates(10);
+      await store.insertUrlHistory(10);
     });
 
     after(async () => {
-      await generator.destroyCookiesData();
-      await generator.destroyClientCertificates();
-      await generator.destroyUrlData();
+      await store.destroyCookies();
+      await store.destroyClientCertificates();
+      await store.destroyUrlHistory();
     });
 
     let factory = /** @type ExportFactory */ (null);
@@ -627,9 +491,7 @@ describe('ExportFactory', () => {
     });
 
     it('returns passed values', async () => {
-      const value = generator.generateBasicAuthData({
-        size: 10,
-      });
+      const value = generator.authorization.basicList(10);
       const data = {
         authdata: value,
       };

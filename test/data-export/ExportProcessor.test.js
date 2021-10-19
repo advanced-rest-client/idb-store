@@ -1,36 +1,34 @@
 import { assert } from '@open-wc/testing';
-import 'chance/dist/chance.min.js';
-import { DataGenerator } from '@advanced-rest-client/arc-data-generator/arc-data-generator.js';
+import { ArcMock } from '@advanced-rest-client/arc-mock';
 import { ExportProcessor } from '../../src/lib/ExportProcessor.js';
 
 /** @typedef {import('@advanced-rest-client/events').ClientCertificate.Certificate} Certificate */
+/** @typedef {import('@advanced-rest-client/events').ArcRequest.ARCSavedRequest} ARCSavedRequest */
+/** @typedef {import('@advanced-rest-client/events').Project.ARCProject} ARCProject */
+/** @typedef {import('@advanced-rest-client/arc-mock').GenerateSavedResult} GenerateSavedResult */
 
-/* global Chance */
-// @ts-ignore
-const chance = new Chance();
 
 describe('ExportProcessor', () => {
+  const generator = new ArcMock();
+
   function mockRev(data) {
     return data.map((item) => {
       // @ts-ignore
-      item._rev = chance.string();
+      item._rev = generator.types.string();
       return item;
     });
   }
 
   describe('prepareRequestsList()', () => {
+    /** @type ARCSavedRequest[] */
     let data;
+    /** @type ExportProcessor */
     let instance;
     beforeEach(async () => {
       instance = new ExportProcessor(false);
-      const projects = DataGenerator.generateProjects({
-        projectsSize: 20
-      });
-      data = DataGenerator.generateRequests({
-        requestsSize: 20,
-        projects,
-      });
-      data = mockRev(data);
+      const projects = generator.http.listProjects(20);
+      const insert = generator.http.savedData(20, 20, { projects }).requests;
+      data = mockRev(insert);
     });
 
     it('returns an array', () => {
@@ -57,14 +55,17 @@ describe('ExportProcessor', () => {
       }
     });
 
-    it('legacyProject is removed', () => {
+    it('removes the legacyProject', () => {
+      // @ts-ignore
       data[0].legacyProject = 'abc';
       delete data[0].projects;
       const result = instance.prepareRequestsList(data);
+      // @ts-ignore
       assert.isUndefined(result[0].legacyProject);
     });
 
-    it('Creates projects from legacyProject', () => {
+    it('creates projects from a legacyProject', () => {
+      // @ts-ignore
       data[0].legacyProject = 'abc';
       delete data[0].projects;
       const result = instance.prepareRequestsList(data);
@@ -72,10 +73,12 @@ describe('ExportProcessor', () => {
       assert.equal(result[0].projects[0], 'abc');
     });
 
-    it('Adds to projects from legacyProject', () => {
+    it('adds to projects from the legacyProject', () => {
       data[0].projects = ['test'];
+      // @ts-ignore
       data[0].legacyProject = 'abc';
       const result = instance.prepareRequestsList(data);
+      // @ts-ignore
       assert.isUndefined(result[0].legacyProject);
       assert.lengthOf(result[0].projects, 2);
     });
@@ -87,14 +90,14 @@ describe('ExportProcessor', () => {
   });
 
   describe('prepareProjectsList()', () => {
+    /** @type ARCProject[] */
     let data;
+    /** @type ExportProcessor */
     let instance;
 
     beforeEach(() => {
       instance = new ExportProcessor(false);
-      data = DataGenerator.generateProjects({
-        projectsSize: 5
-      });
+      data = generator.http.listProjects(5);
       data = mockRev(data);
     });
 
@@ -136,7 +139,7 @@ describe('ExportProcessor', () => {
 
     beforeEach(async () => {
       const instance = new ExportProcessor(false);
-      let data = DataGenerator.generateHistoryRequestsData();
+      let data = generator.http.listHistory();
       data = mockRev(data);
       // @ts-ignore
       result = instance.prepareHistoryDataList(data);
@@ -167,7 +170,7 @@ describe('ExportProcessor', () => {
 
     beforeEach(async () => {
       const instance = new ExportProcessor(false);
-      let data = DataGenerator.generateUrlsData();
+      let data = generator.urls.urls();
       data = mockRev(data);
       // @ts-ignore
       result = instance.prepareWsUrlHistoryData(data);
@@ -198,7 +201,7 @@ describe('ExportProcessor', () => {
 
     beforeEach(async () => {
       const instance = new ExportProcessor(false);
-      let data = DataGenerator.generateUrlsData();
+      let data = generator.urls.urls();
       data = mockRev(data);
       // @ts-ignore
       result = instance.prepareUrlHistoryData(data);
@@ -229,7 +232,7 @@ describe('ExportProcessor', () => {
     let removed;
     beforeEach(async () => {
       const instance = new ExportProcessor(false);
-      let data = DataGenerator.generateVariablesData();
+      let data = generator.variables.listVariables();
       data = mockRev(data);
       // @ts-ignore
       data[1].environment = false;
@@ -268,7 +271,7 @@ describe('ExportProcessor', () => {
 
     beforeEach(async () => {
       const instance = new ExportProcessor(false);
-      let data = DataGenerator.generateBasicAuthData();
+      let data = generator.authorization.basicList();
       data = mockRev(data);
       // @ts-ignore
       result = instance.prepareAuthData(data);
@@ -299,7 +302,7 @@ describe('ExportProcessor', () => {
 
     beforeEach(async () => {
       const instance = new ExportProcessor(false);
-      let data = DataGenerator.generateCookiesData();
+      let data = generator.cookies.cookies();
       data = mockRev(data);
       // @ts-ignore
       result = instance.prepareCookieData(data);
@@ -330,7 +333,7 @@ describe('ExportProcessor', () => {
 
     beforeEach(async () => {
       const instance = new ExportProcessor(true);
-      let data = DataGenerator.generateCookiesData();
+      let data = generator.cookies.cookies();
       data = mockRev(data);
       // @ts-ignore
       result = instance.prepareCookieData(data);
@@ -356,7 +359,7 @@ describe('ExportProcessor', () => {
 
     beforeEach(async () => {
       const instance = new ExportProcessor(false);
-      let data = DataGenerator.generateHostRulesData();
+      let data = generator.hostRules.rules();
       data = mockRev(data);
       // @ts-ignore
       result = instance.prepareHostRulesData(data);
@@ -432,7 +435,7 @@ describe('ExportProcessor', () => {
       let instance = /** @type ExportProcessor */ (null);
       beforeEach(async () => {
         instance = new ExportProcessor(false);
-        const cookies = DataGenerator.generateCookiesData();
+        const cookies = generator.cookies.cookies();
         data = mockRev(cookies);
       });
 
@@ -447,9 +450,7 @@ describe('ExportProcessor', () => {
       let instance = /** @type ExportProcessor */ (null);
       beforeEach(async () => {
         instance = new ExportProcessor(false);
-        let certs = DataGenerator.generateClientCertificates({
-          size: 2,
-        });
+        let certs = generator.certificates.clientCertificates(2);
         certs = mockRev(certs);
         data = [];
         certs.forEach((obj) => {
@@ -457,11 +458,11 @@ describe('ExportProcessor', () => {
           const certificate = /** @type Certificate */ (item.cert);
           const keyCertificate = /** @type Certificate */ (item.key);
           const dataDoc = {
-            cert: DataGenerator.certificateToStore(certificate),
+            cert: generator.certificates.toStore(certificate),
           };
           delete item.cert;
           if (item.key) {
-            dataDoc.key = DataGenerator.certificateToStore(keyCertificate);
+            dataDoc.key = generator.certificates.toStore(keyCertificate);
             delete item.key;
           }
           // @ts-ignore

@@ -2,58 +2,45 @@ import { fixture, assert } from '@open-wc/testing';
 import sinon from 'sinon';
 import { TelemetryEventTypes, ArcModelEventTypes, ArcModelEvents, ARCModelDeleteEvent } from '@advanced-rest-client/events';
 import { ArcBaseModel, notifyDestroyed, deletemodelHandler } from '../../src/ArcBaseModel.js';
-import { STORE_NAME } from './TestModel.js';
 
-/** @typedef {import('./TestModel').TestModel} TestModel */
 /** @typedef {import('@advanced-rest-client/events').ARCModelStateDeleteEvent} ARCModelStateDeleteEvent */
 
 /* eslint-disable require-atomic-updates */
 
 describe('ArcBaseModel', () => {
-  /**
-   * @return {Promise<TestModel>}
-   */
-  async function basicFixture() {
-    return fixture('<test-model></test-model>');
+  const STORE_NAME = 'todo-list';
+  
+  async function etFixture() {
+    return fixture(`<div></div>`);
   }
 
   describe('Basics', () => {
-    it('Sets store name in constructor', async () => {
-      const element = /** @type {TestModel} */ (await fixture(
-        '<test-model></test-model>'
-      ));
-      assert.equal(element.name, STORE_NAME);
+    it('sets the store name in constructor', async () => {
+      const instance = new ArcBaseModel(STORE_NAME);
+      assert.equal(instance.name, STORE_NAME);
     });
 
-    it('Sets reviews limit in constructor', async () => {
-      const element = /** @type {TestModel} */ (await fixture(
-        '<test-model></test-model>'
-      ));
-      assert.equal(element.revsLimit, 2);
+    it('sets the reviews limit in constructor', async () => {
+      const instance = new ArcBaseModel(STORE_NAME, 21);
+      assert.equal(instance.revsLimit, 2);
     });
 
-    it('Uses default event target', async () => {
-      const element = /** @type {TestModel} */ (await fixture(
-        '<test-model></test-model>'
-      ));
-      assert.isTrue(element.eventsTarget === window);
+    it('uses the default event target', async () => {
+      const instance = new ArcBaseModel(STORE_NAME);
+      assert.isTrue(instance.eventsTarget === window);
     });
   });
 
   describe('get db()', () => {
     it('Throws error when store name is not set', async () => {
-      const element = /** @type {TestModel} */ (await fixture(
-        '<test-model></test-model>'
-      ));
-      element.name = undefined;
-      assert.throws(() => element.db);
+      const instance = new ArcBaseModel(undefined);
+      instance.name = undefined;
+      assert.throws(() => instance.db);
     });
 
-    it('Returns PouchDB instance', async () => {
-      const element = /** @type {TestModel} */ (await fixture(
-        '<test-model></test-model>'
-      ));
-      const { db } = element;
+    it('returns the PouchDB instance', async () => {
+      const instance = new ArcBaseModel(STORE_NAME);
+      const { db } = instance;
       assert.equal(db.constructor.name, 'PouchDB');
     });
   });
@@ -67,10 +54,8 @@ describe('ArcBaseModel', () => {
     let rev1;
     let rev2;
     before(async () => {
-      const element = /** @type {TestModel} */ (await fixture(
-        '<test-model></test-model>'
-      ));
-      const { db } = element;
+      const instance = new ArcBaseModel(STORE_NAME);
+      const { db } = instance;
       const result = await db.put(insert);
       rev1 = result.rev;
       insert._rev = rev1;
@@ -81,36 +66,30 @@ describe('ArcBaseModel', () => {
     });
 
     after(async () => {
-      const element = /** @type {TestModel} */ (await fixture(
-        '<test-model></test-model>'
-      ));
-      const { db } = element;
+      const instance = new ArcBaseModel(STORE_NAME);
+      const { db } = instance;
       await db.destroy();
     });
 
-    it('Reads latest revision', async () => {
-      const element = /** @type {TestModel} */ (await fixture(
-        '<test-model></test-model>'
-      ));
-      const doc = await element.read(insert._id);
+    it('reads the latest revision', async () => {
+      const instance = new ArcBaseModel(STORE_NAME);
+      const doc = await instance.read(insert._id);
       // @ts-ignore
       assert.equal(doc._rev, rev2);
     });
 
-    it('Reads specific revision', async () => {
-      const element = /** @type {TestModel} */ (await fixture(
-        '<test-model></test-model>'
-      ));
-      const doc = await element.read(insert._id, rev1);
+    it('reads a specific revision', async () => {
+      const instance = new ArcBaseModel(STORE_NAME);
+      const doc = await instance.read(insert._id, rev1);
       // @ts-ignore
       assert.equal(doc._rev, rev1);
     });
 
     it('throws when no id', async () => {
-      const element = await basicFixture();
+      const instance = new ArcBaseModel(STORE_NAME);
       let thrown = false;
       try {
-        await element.read(undefined);
+        await instance.read(undefined);
       } catch (_) {
         thrown = true;
       }
@@ -119,32 +98,33 @@ describe('ArcBaseModel', () => {
   });
 
   describe('_handleException()', () => {
-    let element = /** @type TestModel */ (null);
+    /** @type ArcBaseModel */
+    let instance;
     beforeEach(async () => {
-      element = await basicFixture();
+      instance = new ArcBaseModel(STORE_NAME);
     });
 
     it('Throws the error', () => {
       assert.throws(() => {
-        element._handleException(new Error('test'));
+        instance._handleException(new Error('test'));
       });
     });
 
     it('does not throw when noThrow is set', () => {
-      element._handleException(new Error('test'), true);
+      instance._handleException(new Error('test'), true);
     });
 
     it(`dispatches ${TelemetryEventTypes.exception} event`, () => {
       const spy = sinon.spy();
-      element.addEventListener(TelemetryEventTypes.exception, spy);
-      element._handleException(new Error('test'), true);
+      instance.addEventListener(TelemetryEventTypes.exception, spy);
+      instance._handleException(new Error('test'), true);
       assert.isTrue(spy.called);
     });
 
     it('the event has exception details', () => {
       const spy = sinon.spy();
-      element.addEventListener(TelemetryEventTypes.exception, spy);
-      element._handleException(new Error('test'), true);
+      instance.addEventListener(TelemetryEventTypes.exception, spy);
+      instance._handleException(new Error('test'), true);
       assert.isTrue(spy.called);
       const { detail } = spy.args[0][0];
       assert.equal(detail.description, 'test', 'Message is set');
@@ -153,8 +133,8 @@ describe('ArcBaseModel', () => {
 
     it('Serializes non-error object', () => {
       const spy = sinon.spy();
-      element.addEventListener(TelemetryEventTypes.exception, spy);
-      element._handleException({ test: true }, true);
+      instance.addEventListener(TelemetryEventTypes.exception, spy);
+      instance._handleException({ test: true }, true);
       assert.isTrue(spy.called);
       const { detail } = spy.args[0][0];
       assert.equal(detail.description, '{"test":true}', 'Message is set');
@@ -162,81 +142,79 @@ describe('ArcBaseModel', () => {
   });
 
   describe('[notifyDestroyed]()', () => {
-    let element = /** @type TestModel */ (null);
+    /** @type ArcBaseModel */
+    let instance;
     const storeName = 'test-store';
 
     beforeEach(async () => {
-      element = /** @type {TestModel} */ (await fixture(
-        '<test-model></test-model>'
-      ));
+      instance = new ArcBaseModel(STORE_NAME);
     });
 
     it('dispatches a custom event', () => {
       const spy = sinon.spy();
-      element.addEventListener(ArcModelEventTypes.destroyed, spy);
-      element[notifyDestroyed](storeName);
+      instance.addEventListener(ArcModelEventTypes.destroyed, spy);
+      instance[notifyDestroyed](storeName);
       assert.isTrue(spy.called);
     });
 
     it('contains datastore on the detail object', () => {
       const spy = sinon.spy();
-      element.addEventListener(ArcModelEventTypes.destroyed, spy);
-      element[notifyDestroyed](storeName);
+      instance.addEventListener(ArcModelEventTypes.destroyed, spy);
+      instance[notifyDestroyed](storeName);
       const e = /** @type ARCModelStateDeleteEvent */ (spy.args[0][0]);
       assert.equal(e.store, storeName);
     });
 
     it('is not cancelable', () => {
       const spy = sinon.spy();
-      element.addEventListener(ArcModelEventTypes.destroyed, spy);
-      element[notifyDestroyed](storeName);
+      instance.addEventListener(ArcModelEventTypes.destroyed, spy);
+      instance[notifyDestroyed](storeName);
       const e = /** @type ARCModelStateDeleteEvent */ (spy.args[0][0]);
       assert.isFalse(e.cancelable);
     });
 
     it('bubbles', () => {
       const spy = sinon.spy();
-      element.addEventListener(ArcModelEventTypes.destroyed, spy);
-      element[notifyDestroyed](storeName);
+      instance.addEventListener(ArcModelEventTypes.destroyed, spy);
+      instance[notifyDestroyed](storeName);
       const e = /** @type ARCModelStateDeleteEvent */ (spy.args[0][0]);
       assert.isTrue(e.bubbles);
     });
 
     it('is composed', () => {
       const spy = sinon.spy();
-      element.addEventListener(ArcModelEventTypes.destroyed, spy);
-      element[notifyDestroyed](storeName);
+      instance.addEventListener(ArcModelEventTypes.destroyed, spy);
+      instance[notifyDestroyed](storeName);
       const e = /** @type ARCModelStateDeleteEvent */ (spy.args[0][0]);
       assert.isTrue(e.composed);
     });
   });
 
   describe('deleteModel()', () => {
-    let element = /** @type TestModel */ (null);
+    /** @type ArcBaseModel */
+    let instance;
     beforeEach(async () => {
-      element = /** @type {TestModel} */ (await fixture(
-        '<test-model></test-model>'
-      ));
+      instance = new ArcBaseModel(STORE_NAME);
     });
 
     it('deletes the model', async () => {
-      await element.deleteModel();
+      await instance.deleteModel();
     });
 
     it('dispatches the state event', async () => {
       const spy = sinon.spy();
-      element.addEventListener(ArcModelEventTypes.destroyed, spy);
-      await element.deleteModel();
+      instance.addEventListener(ArcModelEventTypes.destroyed, spy);
+      await instance.deleteModel();
       assert.isTrue(spy.called);
       const e = /** @type ARCModelStateDeleteEvent */ (spy.args[0][0]);
-      assert.equal(e.store, element.name);
+      assert.equal(e.store, instance.name);
     });
 
     it('rejects the promise when datastore error', async () => {
       let called = false;
-      element.name = undefined;
+      instance.name = undefined;
       try {
-        await element.deleteModel();
+        await instance.deleteModel();
       } catch (_) {
         called = true;
       }
@@ -247,11 +225,10 @@ describe('ArcBaseModel', () => {
   });
 
   describe('_eventCancelled()', () => {
-    let element = /** @type TestModel */ (null);
+    /** @type ArcBaseModel */
+    let instance;
     beforeEach(async () => {
-      element = /** @type {TestModel} */ (await fixture(
-        '<test-model></test-model>'
-      ));
+      instance = new ArcBaseModel(STORE_NAME);
     });
 
     it('Returns true when event is canceled', () => {
@@ -260,25 +237,25 @@ describe('ArcBaseModel', () => {
       });
       e.preventDefault();
       e.stopPropagation();
-      const result = element._eventCancelled(e);
+      const result = instance._eventCancelled(e);
       assert.isTrue(result);
     });
 
     it('Returns true when event is cancelable', () => {
       const e = new CustomEvent('test');
-      const result = element._eventCancelled(e);
+      const result = instance._eventCancelled(e);
       assert.isTrue(result);
     });
 
-    it('Returns true when event is dispatched on current element', () => {
+    it('Returns true when event is dispatched on current instance', () => {
       const e = {
         cancelable: true,
         composedPath() {
-          return [element];
+          return [instance];
         },
       };
       // @ts-ignore
-      const result = element._eventCancelled(e);
+      const result = instance._eventCancelled(e);
       assert.isTrue(result);
     });
 
@@ -287,15 +264,16 @@ describe('ArcBaseModel', () => {
         cancelable: true,
       });
       document.body.dispatchEvent(e);
-      const result = element._eventCancelled(e);
+      const result = instance._eventCancelled(e);
       assert.isFalse(result);
     });
   });
 
   describe('[deletemodelHandler]()', () => {
-    let element = /** @type TestModel */ (null);
+    /** @type ArcBaseModel */
+    let instance;
     beforeEach(async () => {
-      element = await basicFixture();
+      instance = new ArcBaseModel(STORE_NAME);
     });
 
     it('is ignored when cancelled', async () => {
@@ -305,7 +283,7 @@ describe('ArcBaseModel', () => {
       });
       const e = new ARCModelDeleteEvent(['test']);
       document.body.dispatchEvent(e);
-      element[deletemodelHandler](e);
+      instance[deletemodelHandler](e);
       assert.isUndefined(e.detail.result);
     });
 
@@ -330,17 +308,13 @@ describe('ArcBaseModel', () => {
     });
 
     it('handles the event', async () => {
-      const spy = sinon.spy(element, 'deleteModel');
+      const spy = sinon.spy(instance, 'deleteModel');
       await ArcModelEvents.destroy(document.body, [STORE_NAME]);
       assert.isTrue(spy.calledOnce);
     });
   });
 
   class EventableElement extends ArcBaseModel {
-    static get is() {
-      return 'eventable-element';
-    }
-
     constructor() {
       super('test');
       this._testEventHandler = this._testEventHandler.bind(this);
@@ -355,11 +329,11 @@ describe('ArcBaseModel', () => {
       return this._calledCount === 1;
     }
 
-    _attachListeners(node) {
+    listen(node) {
       node.addEventListener('test-event', this._testEventHandler);
     }
 
-    _detachListeners(node) {
+    unlisten(node) {
       node.removeEventListener('test-event', this._testEventHandler);
     }
 
@@ -367,77 +341,56 @@ describe('ArcBaseModel', () => {
       this._calledCount++;
     }
   }
-  window.customElements.define(EventableElement.is, EventableElement);
 
-  function fire(type, bubbles, node) {
-    const event = new CustomEvent(type, {
-      cancelable: true,
-      bubbles,
-      composed: true,
-    });
-    (node || document.body).dispatchEvent(event);
-    return event;
-  }
+  // function fire(type, bubbles, node) {
+  //   const event = new CustomEvent(type, {
+  //     cancelable: true,
+  //     bubbles,
+  //     composed: true,
+  //   });
+  //   (node || document.body).dispatchEvent(event);
+  //   return event;
+  // }
 
-  describe('Listens on default', () => {
-    let element;
+  describe('Listens on the event target', () => {
+    /** @type EventableElement */
+    let instance;
+    /** @type Element */
+    let et;
+
     beforeEach(async () => {
-      element = /** @type {TestModel} */ (await fixture(
-        '<eventable-element></eventable-element>'
-      ));
+      et = await etFixture();
+      instance = new EventableElement();
+      instance.listen(et);
     });
 
-    it('Receives an event from bubbling', () => {
-      fire('test-event', true);
-      assert.isTrue(element.calledOnce);
+    it('handles a bubbling event', () => {
+      const e = new Event('test-event', { bubbles: true });
+      et.dispatchEvent(e);
+      assert.isTrue(instance.calledOnce);
     });
 
-    it('Do not receives an event from parent', () => {
-      fire('test-event', false, document.body.parentElement);
-      assert.isFalse(element.calledOnce);
-    });
-  });
-
-  describe('Changes event listener', () => {
-    let element;
-    beforeEach(async () => {
-      element = /** @type {TestModel} */ (await fixture(
-        '<eventable-element></eventable-element>'
-      ));
-    });
-
-    it('Receives on body', () => {
-      element.eventsTarget = document.body;
-      fire('test-event', false, document.body);
-      assert.isTrue(element.calledOnce);
-    });
-
-    it('Do not receives on parent', () => {
-      element.eventsTarget = window;
-      fire('test-event', false, document.body);
-      assert.isFalse(element.called);
-    });
-
-    it('Receives on self', () => {
-      element.eventsTarget = element;
-      fire('test-event', false, element);
-      assert.isTrue(element.calledOnce);
+    it('does not receives an event from parent', () => {
+      const e = new Event('test-event', { bubbles: true });
+      document.body.parentElement.dispatchEvent(e);
+      assert.isFalse(instance.calledOnce);
     });
   });
 
   describe('encodePageToken()', () => {
-    let model = /** @type TestModel */ (null);
+    /** @type ArcBaseModel */
+    let instance;
     beforeEach(async () => {
-      model = await basicFixture();
+      instance = new ArcBaseModel(STORE_NAME);
     });
 
     it('returns a string', () => {
-      const result = model.encodePageToken({ test: true });
+      const result = instance.encodePageToken({ test: true });
       assert.typeOf(result, 'string');
     });
 
     it('encodes parameters', () => {
-      const token = model.encodePageToken({ test: true });
+      const token = instance.encodePageToken({ test: true });
       const decoded = atob(token);
       const result = JSON.parse(decoded);
       assert.deepEqual(result, { test: true });
@@ -445,28 +398,29 @@ describe('ArcBaseModel', () => {
   });
 
   describe('decodePageToken()', () => {
-    let model = /** @type TestModel */ (null);
+    /** @type ArcBaseModel */
+    let instance;
     beforeEach(async () => {
-      model = await basicFixture();
+      instance = new ArcBaseModel(STORE_NAME);
     });
 
     it('returns null when no argument', () => {
-      const result = model.decodePageToken(undefined);
+      const result = instance.decodePageToken(undefined);
       assert.equal(result, null);
     });
 
     it('returns null when invalid base64 value', () => {
-      const result = model.decodePageToken('invalid base64');
+      const result = instance.decodePageToken('invalid base64');
       assert.equal(result, null);
     });
 
     it('returns null when invalid JSON value', () => {
-      const result = model.decodePageToken(btoa('test value'));
+      const result = instance.decodePageToken(btoa('test value'));
       assert.equal(result, null);
     });
 
     it('returns decoded token', () => {
-      const result = model.decodePageToken(btoa('{"test":"value"}'));
+      const result = instance.decodePageToken(btoa('{"test":"value"}'));
       assert.deepEqual(result, { test: 'value' });
     });
   });

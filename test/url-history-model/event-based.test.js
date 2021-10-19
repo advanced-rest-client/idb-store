@@ -1,36 +1,40 @@
-import { assert, fixture, html, oneEvent } from '@open-wc/testing';
-import { DataGenerator } from '@advanced-rest-client/arc-data-generator';
+import { assert, fixture, oneEvent } from '@open-wc/testing';
+import { ArcMock } from '@advanced-rest-client/arc-mock';
 import { TransportEventTypes, TransportEvents, ArcModelEventTypes, ArcModelEvents } from '@advanced-rest-client/events';
 import sinon from 'sinon';
-import '../../url-history-model.js';
+import { MockedStore, UrlHistoryModel } from '../../index.js';
 
-/** @typedef {import('../../src/UrlHistoryModel').UrlHistoryModel} UrlHistoryModel */
 /** @typedef {import('@advanced-rest-client/events').UrlHistory.ARCUrlHistory} ARCUrlHistory */
 
 describe('UrlHistoryModel - event based', () => {
-  /**
-   * @return {Promise<UrlHistoryModel>}
-   */
-  async function basicFixture() {
-    return fixture(html`<url-history-model></url-history-model>`);
+  const store = new MockedStore();
+  const generator = new ArcMock();
+  
+  async function etFixture() {
+    return fixture(`<div></div>`);
   }
-
-  const generator = new DataGenerator();
 
   describe(`${ArcModelEventTypes.UrlHistory.list} event`, () => {
     before(async () => {
-      const model = await basicFixture();
-      const projects = /** @type ARCUrlHistory[] */ (generator.generateUrlsData({ size: 30 }));
-      await model.db.bulkDocs(projects);
+      const et = await etFixture();
+      const instance = new UrlHistoryModel();
+      instance.listen(et);
+      const projects = /** @type ARCUrlHistory[] */ (generator.urls.urls(30));
+      await instance.db.bulkDocs(projects);
     });
 
-    let element = /** @type UrlHistoryModel */ (null);
+    /** @type UrlHistoryModel */
+    let instance;
+    /** @type Element */
+    let et;
     beforeEach(async () => {
-      element = await basicFixture();
+      et = await etFixture();
+      instance = new UrlHistoryModel();
+      instance.listen(et);
     });
 
     after(async () => {
-      await generator.destroyUrlData();
+      await store.destroyUrlHistory();
     });
 
     it('returns a query result for default parameters', async () => {
@@ -38,7 +42,7 @@ describe('UrlHistoryModel - event based', () => {
       assert.typeOf(result, 'object', 'result is an object');
       assert.typeOf(result.nextPageToken, 'string', 'has page token');
       assert.typeOf(result.items, 'array', 'has response items');
-      assert.lengthOf(result.items, element.defaultQueryOptions.limit, 'has default limit of items');
+      assert.lengthOf(result.items, instance.defaultQueryOptions.limit, 'has default limit of items');
     });
 
     it('respects "limit" parameter', async () => {
@@ -69,10 +73,10 @@ describe('UrlHistoryModel - event based', () => {
     });
 
     it('adds midnight to an item when not there', async () => {
-      const entity = /** @type ARCUrlHistory */ (generator.generateUrlObject());
+      const entity = generator.urls.url();
       entity._id = 'arc://custom-no-midnight/value';
       delete entity.midnight;
-      await element.update(entity);
+      await instance.update(entity);
       const result = await ArcModelEvents.UrlHistory.list(document.body, {
         limit: 31,
       });
@@ -81,10 +85,10 @@ describe('UrlHistoryModel - event based', () => {
     });
 
     it('uses existing "midnight" value when set', async () => {
-      const entity = /** @type ARCUrlHistory */ (generator.generateUrlObject());
+      const entity = generator.urls.url();
       entity._id = 'arc://custom-with-midnight/value';
       entity.midnight = 100;
-      await element.update(entity);
+      await instance.update(entity);
       const result = await ArcModelEvents.UrlHistory.list(document.body, {
         limit: 32,
       });
@@ -94,17 +98,22 @@ describe('UrlHistoryModel - event based', () => {
   });
 
   describe(`${ArcModelEventTypes.UrlHistory.insert} event`, () => {
-    let element = /** @type UrlHistoryModel */ (null);
+    /** @type UrlHistoryModel */
+    let instance;
+    /** @type Element */
+    let et;
     beforeEach(async () => {
-      element = await basicFixture();
+      et = await etFixture();
+      instance = new UrlHistoryModel();
+      instance.listen(et);
     });
 
     afterEach(async () => {
-      await generator.destroyUrlData();
+      await store.destroyUrlHistory();
     });
 
     it('returns the changelog', async () => {
-      const entity = /** @type ARCUrlHistory */ (generator.generateUrlObject());
+      const entity = generator.urls.url();
       const result = await ArcModelEvents.UrlHistory.insert(document.body, entity._id);
       assert.typeOf(result, 'object', 'returns an object');
       assert.typeOf(result.id, 'string', 'has an id');
@@ -114,9 +123,9 @@ describe('UrlHistoryModel - event based', () => {
     });
 
     it('creates an item in the data store', async () => {
-      const entity = /** @type ARCUrlHistory */ (generator.generateUrlObject());
+      const entity = generator.urls.url();
       await ArcModelEvents.UrlHistory.insert(document.body, entity._id);
-      const result = /** @type ARCUrlHistory */ (await element.db.get(entity._id));
+      const result = /** @type ARCUrlHistory */ (await instance.db.get(entity._id));
       assert.typeOf(result, 'object', 'returns an object');
       assert.equal(result._id, entity._id, 'has the id');
       assert.typeOf(result._rev, 'string', 'has a rev');
@@ -126,30 +135,30 @@ describe('UrlHistoryModel - event based', () => {
     });
 
     it('updates the counter on the same item', async () => {
-      const entity = /** @type ARCUrlHistory */ (generator.generateUrlObject());
+      const entity = generator.urls.url();
       await ArcModelEvents.UrlHistory.insert(document.body, entity._id);
       await ArcModelEvents.UrlHistory.insert(document.body, entity._id);
-      const result = /** @type ARCUrlHistory */ (await element.db.get(entity._id));
+      const result = /** @type ARCUrlHistory */ (await instance.db.get(entity._id));
       assert.equal(result.cnt, 2, 'has default cnt property');
     });
 
     it('dispatches change event', async () => {
-      const entity = /** @type ARCUrlHistory */ (generator.generateUrlObject());
+      const entity = generator.urls.url();
       const spy = sinon.spy();
-      element.addEventListener(ArcModelEventTypes.UrlHistory.State.update, spy);
+      instance.addEventListener(ArcModelEventTypes.UrlHistory.State.update, spy);
       await ArcModelEvents.UrlHistory.insert(document.body, entity._id);
       assert.isTrue(spy.calledOnce);
     });
 
     it('adds midnight value', async () => {
-      const entity = /** @type ARCUrlHistory */ (generator.generateUrlObject());
+      const entity = generator.urls.url();
       delete entity.midnight;
       const result = await ArcModelEvents.UrlHistory.insert(document.body, entity._id);
       assert.typeOf(result.item.midnight, 'number');
     });
 
     it('adds url value', async () => {
-      const entity = /** @type ARCUrlHistory */ (generator.generateUrlObject());
+      const entity = generator.urls.url();
       delete entity.url;
       const result = await ArcModelEvents.UrlHistory.insert(document.body, entity._id);
       assert.typeOf(result.item.url, 'string');
@@ -165,18 +174,25 @@ describe('UrlHistoryModel - event based', () => {
   describe(`${ArcModelEventTypes.UrlHistory.query} event`, () => {
     let created = /** @type ARCUrlHistory[] */ (null)
     before(async () => {
-      const model = await basicFixture();
-      created = /** @type ARCUrlHistory[] */ (generator.generateUrlsData({ size: 30 }));
-      await model.db.bulkDocs(created);
+      const et = await etFixture();
+      const instance = new UrlHistoryModel();
+      instance.listen(et);
+      created = /** @type ARCUrlHistory[] */ (generator.urls.urls(30));
+      await instance.db.bulkDocs(created);
     });
 
-    let element = /** @type UrlHistoryModel */ (null);
+    /** @type UrlHistoryModel */
+    let instance;
+    /** @type Element */
+    let et;
     beforeEach(async () => {
-      element = await basicFixture();
+      et = await etFixture();
+      instance = new UrlHistoryModel();
+      instance.listen(et);
     });
 
     after(async () => {
-      await generator.destroyUrlData();
+      await store.destroyUrlHistory();
     });
 
     it('returns a list of matched results', async () => {
@@ -196,40 +212,40 @@ describe('UrlHistoryModel - event based', () => {
     });
 
     it('adds midnight to an item when not there', async () => {
-      const entity = /** @type ARCUrlHistory */ (generator.generateUrlObject());
+      const entity = generator.urls.url();
       entity._id = 'arc://custom-no-midnight/value';
       delete entity.midnight;
-      await element.update(entity);
+      await instance.update(entity);
       const result = await ArcModelEvents.UrlHistory.query(document.body, entity._id);
       const [item] = result;
       assert.typeOf(item.midnight, 'number');
     });
 
     it('uses existing "midnight" value when set', async () => {
-      const entity = /** @type ARCUrlHistory */ (generator.generateUrlObject());
+      const entity = generator.urls.url();
       entity._id = 'arc://custom-with-midnight/value';
       entity.midnight = 100;
-      await element.update(entity);
+      await instance.update(entity);
       const result = await ArcModelEvents.UrlHistory.query(document.body, entity._id);
       const [item] = result;
       assert.equal(item.midnight, 100);
     });
 
     it('adds url to an item when not there', async () => {
-      const entity = /** @type ARCUrlHistory */ (generator.generateUrlObject());
+      const entity = generator.urls.url();
       entity._id = 'arc://custom-no-url/value';
       delete entity.url;
-      await element.update(entity);
+      await instance.update(entity);
       const result = await ArcModelEvents.UrlHistory.query(document.body, entity._id);
       const [item] = result;
       assert.typeOf(item.url, 'string');
     });
 
     it('uses existing "url" value when set', async () => {
-      const entity = /** @type ARCUrlHistory */ (generator.generateUrlObject());
+      const entity = generator.urls.url();
       entity._id = 'arc://custom-with-url/value';
       entity.url = 'https://API.domain.com';
-      await element.update(entity);
+      await instance.update(entity);
       const result = await ArcModelEvents.UrlHistory.query(document.body, entity._id);
       const [item] = result;
       assert.equal(item.url, 'https://API.domain.com');
@@ -244,33 +260,41 @@ describe('UrlHistoryModel - event based', () => {
   });
 
   describe(`${ArcModelEventTypes.destroy} event`, () => {
+    /** @type UrlHistoryModel */
+    let instance;
+    /** @type Element */
+    let et;
     beforeEach(async () => {
-      const created = /** @type ARCUrlHistory[] */ (generator.generateUrlsData({ size: 30 }));
-      const model = await basicFixture();
-      await model.db.bulkDocs(created);
+      const created = /** @type ARCUrlHistory[] */ (generator.urls.urls(30));
+      et = await etFixture();
+      instance = new UrlHistoryModel();
+      instance.listen(et);
+      await instance.db.bulkDocs(created);
     });
 
     after(async () => {
-      await generator.destroyUrlData();
+      await store.destroyUrlHistory();
     });
 
-    it('deletes saved model', async () => {
+    it('deletes saved instance', async () => {
       await ArcModelEvents.destroy(document.body, ['url-history'])
-      const result = await generator.getDatastoreUrlsData();
+      const result = await store.getDatastoreUrlsData();
       assert.deepEqual(result, []);
     });
   });
 
   describe(`${TransportEventTypes.transport} event`, () => {
     after(async () => {
-      await generator.destroyUrlData();
+      await store.destroyUrlHistory();
     });
 
     it('stores the URL when request is being transported', async () => {
-      const model = await basicFixture();
-      const request = generator.generateHistoryObject();
+      const et = await etFixture();
+      const instance = new UrlHistoryModel();
+      instance.listen(et);
+      const request = generator.http.history();
       TransportEvents.transport(document.body, 'test', request);
-      const e = await oneEvent(model, ArcModelEventTypes.UrlHistory.State.update);
+      const e = await oneEvent(instance, ArcModelEventTypes.UrlHistory.State.update);
       
       // @ts-ignore
       const record = e.changeRecord;
@@ -281,14 +305,20 @@ describe('UrlHistoryModel - event based', () => {
   describe(`The delete event`, () => {
     /** @type ARCUrlHistory */
     let dataObj;
+    /** @type UrlHistoryModel */
+    let instance;
+    /** @type Element */
+    let et;
     beforeEach(async () => {
-      const element = await basicFixture();
-      const doc = /** @type ARCUrlHistory */ (generator.generateUrlObject());
-      const record = await element.update(doc);
+      et = await etFixture();
+      instance = new UrlHistoryModel();
+      instance.listen(et);
+      const doc = generator.urls.url();
+      const record = await instance.update(doc);
       dataObj = record.item;
     });
 
-    afterEach(() => generator.destroyUrlData());
+    afterEach(() => store.destroyUrlHistory());
 
     it('ignores cancelled events', async () => {
       document.body.addEventListener(ArcModelEventTypes.UrlHistory.delete, function f(e) {
@@ -301,7 +331,7 @@ describe('UrlHistoryModel - event based', () => {
 
     it('removes the entity from the datastore', async () => {
       await ArcModelEvents.UrlHistory.delete(document.body, dataObj._id);
-      const result = await generator.getDatastoreUrlsData();
+      const result = await store.getDatastoreUrlsData();
       assert.deepEqual(result, []);
     });
 

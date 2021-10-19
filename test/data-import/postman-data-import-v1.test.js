@@ -1,11 +1,11 @@
 import { assert } from '@open-wc/testing';
-import { DataGenerator } from '@advanced-rest-client/arc-data-generator';
 import { DataTestHelper } from './DataTestHelper.js';
 import { ImportNormalize } from '../../src/lib/ImportNormalize.js';
 import { ImportFactory } from '../../src/lib/ImportFactory.js';
+import { MockedStore } from '../../index.js';
 
 describe('postman-data-import-v1-test', () => {
-  const generator = new DataGenerator();
+  const store = new MockedStore();
 
   describe('Postman import to datastore - v1', () => {
     let originalData;
@@ -16,12 +16,12 @@ describe('postman-data-import-v1-test', () => {
     });
 
     after(async () => {
-      await generator.destroySavedRequestData();
-      await generator.destroyVariablesData();
+      await store.destroySaved();
+      await store.destroyVariables();
     });
 
     beforeEach(async () => {
-      data = generator.clone(originalData);
+      data = store.clone(originalData);
     });
 
     it('Stores the data', async () => {
@@ -30,9 +30,9 @@ describe('postman-data-import-v1-test', () => {
       const factory = new ImportFactory();
       const errors = await factory.importData(parsed);
       assert.isUndefined(errors, 'has no storing errors');
-      const requests = await generator.getDatastoreRequestData();
+      const requests = await store.getDatastoreRequestData();
       assert.lengthOf(requests, 2, 'has 2 requests');
-      const projects = await generator.getDatastoreProjectsData();
+      const projects = await store.getDatastoreProjectsData();
       assert.lengthOf(projects, 1, 'has a single project');
     });
 
@@ -42,9 +42,9 @@ describe('postman-data-import-v1-test', () => {
       const factory = new ImportFactory();
       const errors = await factory.importData(parsed);
       assert.isUndefined(errors, 'has no storing errors');
-      const requests = await generator.getDatastoreRequestData();
+      const requests = await store.getDatastoreRequestData();
       assert.lengthOf(requests, 2, 'has 2 requests');
-      const projects = await generator.getDatastoreProjectsData();
+      const projects = await store.getDatastoreProjectsData();
       assert.lengthOf(projects, 1, 'has a single project');
     });
   });

@@ -1,16 +1,9 @@
-import { fixture, assert } from '@open-wc/testing';
+import { assert } from '@open-wc/testing';
 import { ArcModelEvents } from '@advanced-rest-client/events';
-import '../../url-indexer.js';
 import { DbHelper } from './db-helper.js';
 import { UrlIndexer } from '../../index.js';
 
 describe('UrlIndexer', () => {
-  /**
-   * @return {Promise<UrlIndexer>}
-   */
-  async function basicFixture() {
-    return fixture('<url-indexer></url-indexer>');
-  }
 
   before(async () => {
     await DbHelper.clearData();
@@ -41,7 +34,7 @@ describe('UrlIndexer', () => {
             type: 'history',
           },
         ];
-        const indexer = new UrlIndexer();
+        const indexer = new UrlIndexer(window);
         await indexer.index(toIndex);
       });
 
@@ -59,13 +52,14 @@ describe('UrlIndexer', () => {
       }
 
       describe('Case search', () => {
-        let element = /** @type UrlIndexer */ (null);
+        /** @type UrlIndexer */
+      let instance;
         beforeEach(async () => {
-          element = await basicFixture();
+          instance = new UrlIndexer(window);
         });
 
         afterEach(async () => {
-          const db = await element.openSearchStore();
+          const db = await instance.openSearchStore();
           db.close();
         });
 
@@ -76,12 +70,12 @@ describe('UrlIndexer', () => {
           new SearchResults('mulesoft.com', 0, 0, 0),
         ].forEach(({ url, size, savedSize, historySize }) => {
           it(`Querying for "${url}"`, async () => {
-            const result = await element.query(url, { detailed: false });
+            const result = await instance.query(url, { detailed: false });
             assert.lengthOf(Object.keys(result), size);
           });
 
           it(`Querying for "${url}" - saved only `, async () => {
-            const result = await element.query(url, {
+            const result = await instance.query(url, {
               detailed: false,
               type: 'saved',
             });
@@ -89,7 +83,7 @@ describe('UrlIndexer', () => {
           });
 
           it(`Querying for "${url}" - history only `, async () => {
-            const result = await element.query(url, {
+            const result = await instance.query(url, {
               detailed: false,
               type: 'history',
             });
@@ -104,13 +98,14 @@ describe('UrlIndexer', () => {
       });
 
       describe('Detailed search', () => {
-        let element = /** @type UrlIndexer */ (null);
+        /** @type UrlIndexer */
+      let instance;
         beforeEach(async () => {
-          element = await basicFixture();
+          instance = new UrlIndexer(window);
         });
 
         afterEach(async () => {
-          const db = await element.openSearchStore();
+          const db = await instance.openSearchStore();
           db.close();
         });
 
@@ -121,12 +116,12 @@ describe('UrlIndexer', () => {
           new SearchResults('mulesoft.com', 1, 0, 1),
         ].forEach(({ url, size, savedSize, historySize }) => {
           it(`Querying for "${url}"`, async () => {
-            const result = await element.query(url, { detailed: true });
+            const result = await instance.query(url, { detailed: true });
             assert.lengthOf(Object.keys(result), size);
           });
 
           it(`Querying for "${url}" - saved only `, async () => {
-            const result = await element.query(url, {
+            const result = await instance.query(url, {
               detailed: true,
               type: 'saved',
             });
@@ -134,7 +129,7 @@ describe('UrlIndexer', () => {
           });
 
           it(`Querying for "${url}" - history only `, async () => {
-            const result = await element.query(url, {
+            const result = await instance.query(url, {
               detailed: true,
               type: 'history',
             });
@@ -155,9 +150,10 @@ describe('UrlIndexer', () => {
     });
 
     describe('IP based search', () => {
-      let element = /** @type UrlIndexer */ (null);
+      /** @type UrlIndexer */
+      let instance;
       before(async () => {
-        element = await basicFixture();
+        instance = new UrlIndexer(window);
         const toIndex = [
           {
             id: 'test-id-1',
@@ -180,7 +176,7 @@ describe('UrlIndexer', () => {
             type: 'history',
           },
         ];
-        await element.index(toIndex);
+        await instance.index(toIndex);
       });
 
       after(async () => {
@@ -201,7 +197,7 @@ describe('UrlIndexer', () => {
       };
 
       it('returns data for a partial IP address (1st group)', async () => {
-        const result = await element.query('178', {
+        const result = await instance.query('178', {
           detailed: false,
           type: 'history',
         });
@@ -209,7 +205,7 @@ describe('UrlIndexer', () => {
       });
 
       it('returns data for a partial IP address (2nd group)', async () => {
-        const result = await element.query('178.1', {
+        const result = await instance.query('178.1', {
           detailed: false,
           type: 'history',
         });
@@ -217,7 +213,7 @@ describe('UrlIndexer', () => {
       });
 
       it('returns data for a partial IP address (3rd group)', async () => {
-        const result = await element.query('178.1.2', {
+        const result = await instance.query('178.1.2', {
           detailed: false,
           type: 'history',
         });
@@ -225,7 +221,7 @@ describe('UrlIndexer', () => {
       });
 
       it('returns data for a partial IP address (4th group)', async () => {
-        const result = await element.query('178.1.2.5', {
+        const result = await instance.query('178.1.2.5', {
           detailed: false,
           type: 'history',
         });
@@ -233,7 +229,7 @@ describe('UrlIndexer', () => {
       });
 
       it('matches path', async () => {
-        const result = await element.query('/api', {
+        const result = await instance.query('/api', {
           detailed: false,
           type: 'history',
         });
@@ -241,7 +237,7 @@ describe('UrlIndexer', () => {
       });
 
       it('matches path without first slash', async () => {
-        const result = await element.query('api', {
+        const result = await instance.query('api', {
           detailed: false,
           type: 'history',
         });
@@ -249,7 +245,7 @@ describe('UrlIndexer', () => {
       });
 
       it('matches path (detailed)', async () => {
-        const result = await element.query('/api', {
+        const result = await instance.query('/api', {
           detailed: true,
           type: 'history',
         });
@@ -257,7 +253,7 @@ describe('UrlIndexer', () => {
       });
 
       it('matches path without first slash (detailed)', async () => {
-        const result = await element.query('api', {
+        const result = await instance.query('api', {
           detailed: true,
           type: 'history',
         });
@@ -265,7 +261,7 @@ describe('UrlIndexer', () => {
       });
 
       it('matches specific path', async () => {
-        const result = await element.query('/api/test4', {
+        const result = await instance.query('/api/test4', {
           detailed: false,
           type: 'history',
         });
@@ -273,7 +269,7 @@ describe('UrlIndexer', () => {
       });
 
       it('matches specific path without first slash', async () => {
-        const result = await element.query('api/test4', {
+        const result = await instance.query('api/test4', {
           detailed: false,
           type: 'history',
         });
@@ -281,7 +277,7 @@ describe('UrlIndexer', () => {
       });
 
       it('matches specific path (detailed)', async () => {
-        const result = await element.query('/api/test4', {
+        const result = await instance.query('/api/test4', {
           detailed: true,
           type: 'history',
         });
@@ -289,7 +285,7 @@ describe('UrlIndexer', () => {
       });
 
       it('matches specific path without first slash (detailed)', async () => {
-        const result = await element.query('api/test4', {
+        const result = await instance.query('api/test4', {
           detailed: true,
           type: 'history',
         });

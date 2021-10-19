@@ -1,10 +1,11 @@
 /* eslint-disable prefer-template */
-import { fixture, html, assert, oneEvent } from '@open-wc/testing';
-import { DataGenerator } from '@advanced-rest-client/arc-data-generator';
+import { fixture, assert, oneEvent } from '@open-wc/testing';
+import { ArcMock } from '@advanced-rest-client/arc-mock';
 import { ArcModelEventTypes, TransportEvents, TransportEventTypes } from '@advanced-rest-client/events';
-import '../../history-data-model.js';
-import '../../request-model.js';
+import { MockedStore } from '../../index.js';
+import { RequestModel } from '../../src/RequestModel.js';
 import {
+  HistoryDataModel,
   computeHistoryStoreUrl,
   computeHistoryDataId,
   createHistoryDataModel,
@@ -14,7 +15,6 @@ import {
   createEmptyTimings,
 } from '../../src/HistoryDataModel.js';
 
-/** @typedef {import('../../').HistoryDataModel} HistoryDataModel */
 /** @typedef {import('@advanced-rest-client/events').HistoryData.HistoryData} HistoryData */
 /** @typedef {import('@advanced-rest-client/events').ArcRequest.TransportRequest} TransportRequest */
 /** @typedef {import('@advanced-rest-client/events').ArcResponse.Response} Response */
@@ -23,96 +23,91 @@ import {
 /** @typedef {import('@advanced-rest-client/events').ArcResponse.TransformedPayload} TransformedPayload */
 
 describe('HistoryDataModel', () => {
-  const generator = new DataGenerator();
-
-  /**
-   * @return {Promise<HistoryDataModel>}
-   */
-  async function basicFixture() {
-    return fixture('<history-data-model></history-data-model>');
-  }
-
-  /**
-   * @return {Promise<HistoryDataModel>}
-   */
-  async function modelFixture() {
-    const element = await fixture(html`
-      <div>
-        <request-model></request-model>
-        <history-data-model></history-data-model>
-      </div>
-    `);
-    return element.querySelector('history-data-model');
+  const store = new MockedStore();
+  const generator = new ArcMock();
+  
+  async function etFixture() {
+    return fixture(`<div></div>`);
   }
 
   describe('[computeHistoryStoreUrl]()', () => {
-    let element = /** @type HistoryDataModel */ (null);
+    /** @type HistoryDataModel */
+    let instance;
+    /** @type Element */
+    let et;
     before(async () => {
-      element = await basicFixture();
+      et = await etFixture();
+      instance = new HistoryDataModel();
+      instance.listen(et);
     });
 
     it('Returns undefined for missing argument', () => {
-      const result = element[computeHistoryStoreUrl](undefined);
+      const result = instance[computeHistoryStoreUrl](undefined);
       assert.isUndefined(result);
     });
 
     it('Normalizes url for domain', () => {
       const url = 'https://domain.com';
-      const result = element[computeHistoryStoreUrl](url);
+      const result = instance[computeHistoryStoreUrl](url);
       assert.equal(result, url + '/');
     });
 
     it('Normalizes url for resource', () => {
       const url = 'https://domain.com/path';
-      const result = element[computeHistoryStoreUrl](url);
+      const result = instance[computeHistoryStoreUrl](url);
       assert.equal(result, url);
     });
 
     it('Normalizes url for path', () => {
       const url = 'https://domain.com/path/';
-      const result = element[computeHistoryStoreUrl](url);
+      const result = instance[computeHistoryStoreUrl](url);
       assert.equal(result, url);
     });
 
     it('Normalizes url for query parameters', () => {
       const url = 'https://domain.com/path/';
-      const result = element[computeHistoryStoreUrl](url + '?a=b');
+      const result = instance[computeHistoryStoreUrl](url + '?a=b');
       assert.equal(result, url);
     });
 
     it('Normalizes url for resource and query parameters', () => {
       const url = 'https://domain.com/path';
-      const result = element[computeHistoryStoreUrl](url + '?a=b');
+      const result = instance[computeHistoryStoreUrl](url + '?a=b');
       assert.equal(result, url);
     });
 
     it('Normalizes url for domain and query parameters', () => {
       const url = 'https://domain.com/';
-      const result = element[computeHistoryStoreUrl](url + '?a=b');
+      const result = instance[computeHistoryStoreUrl](url + '?a=b');
       assert.equal(result, url);
     });
 
     it('Normalizes url for hash', () => {
       const url = 'https://domain.com/';
-      const result = element[computeHistoryStoreUrl](url + '#abc');
+      const result = instance[computeHistoryStoreUrl](url + '#abc');
       assert.equal(result, url);
     });
 
     it('Normalizes url for hash and query parameters', () => {
       const url = 'https://domain.com/';
-      const result = element[computeHistoryStoreUrl](url + '?a=b#abc');
+      const result = instance[computeHistoryStoreUrl](url + '?a=b#abc');
       assert.equal(result, url);
     });
   });
 
   describe('[computeHistoryDataId]()', () => {
-    let element = /** @type HistoryDataModel */ (null);
+    /** @type HistoryDataModel */
+    let instance;
+    /** @type Element */
+    let et;
     const URL = 'https://api.domain.com/endpoint';
     const METHOD = 'GET';
     let id;
     before(async () => {
-      element = await basicFixture();
-      id = element[computeHistoryDataId](URL, METHOD);
+      et = await etFixture();
+      instance = new HistoryDataModel();
+      instance.listen(et);
+      id = instance[computeHistoryDataId](URL, METHOD);
     });
 
     it('Contains 3 parts', () => {
@@ -136,15 +131,20 @@ describe('HistoryDataModel', () => {
   });
 
   describe('[createHistoryDataModel]()', () => {
-    let element = /** @type HistoryDataModel */ (null);
+    /** @type HistoryDataModel */
+    let instance;
+    /** @type Element */
+    let et;
     let model = /** @type HistoryData */ (null);
     let request = /** @type TransportRequest */ (null);
     let response = /** @type Response */ (null);
     beforeEach(async () => {
-      element = await basicFixture();
-      request = generator.generateTransportRequest();
-      response = generator.generateResponse({ timings: true, ssl: true, redirects: true,  });
-      model = await element[createHistoryDataModel](request, response);
+      et = await etFixture();
+      instance = new HistoryDataModel();
+      instance.listen(et);
+      request = generator.http.transportRequest();
+      response = generator.http.response.arcResponse({ timings: true, ssl: true, redirects: true,  });
+      model = await instance[createHistoryDataModel](request, response);
     });
 
     it('has the _id', () => {
@@ -265,94 +265,115 @@ describe('HistoryDataModel', () => {
   });
   
   describe('[saveHistoryData]()', () => {
-    let element = /** @type HistoryDataModel */ (null);
+    /** @type HistoryDataModel */
+    let instance;
+    /** @type Element */
+    let et;
     let request = /** @type TransportRequest */ (null);
     let response = /** @type Response */ (null);
     beforeEach(async () => {
-      element = await basicFixture();
-      request = generator.generateTransportRequest();
-      response = generator.generateResponse({ timings: true, ssl: true, redirects: true,  });
+      et = await etFixture();
+      instance = new HistoryDataModel();
+      instance.listen(et);
+      request = generator.http.transportRequest();
+      response = generator.http.response.arcResponse({ timings: true, ssl: true, redirects: true,  });
     });
 
     afterEach(async () => {
-      await element.db.destroy();
+      await instance.db.destroy();
     });
 
     async function getAll() {
-      const rsp = await element.db.allDocs({ include_docs: true });
+      const rsp = await instance.db.allDocs({ include_docs: true });
       return rsp.rows.map((i) => i.doc);
     }
 
     it('stores request in the history-data store', async () => {
-      await element[saveHistoryData](request, response);
+      await instance[saveHistoryData](request, response);
       const docs = await getAll();
       assert.lengthOf(docs, 1);
     });
 
     it('ignores when "dataDisabled"', async () => {
-      element.dataDisabled = true;
-      await element[saveHistoryData](request, response);
+      instance.dataDisabled = true;
+      await instance[saveHistoryData](request, response);
       const docs = await getAll();
       assert.lengthOf(docs, 0);
     });
   });
 
   describe('[updateHistory]()', () => {
-    let element = /** @type HistoryDataModel */ (null);
+    /** @type HistoryDataModel */
+    let instance;
+    /** @type RequestModel */
+    let requestModel;
+    /** @type Element */
+    let et;
     let request = /** @type TransportRequest */ (null);
     let response = /** @type Response */ (null);
     let source = /** @type ARCHistoryRequest */ (null);
     beforeEach(async () => {
-      element = await modelFixture();
-      request = generator.generateTransportRequest();
-      response = generator.generateResponse({ timings: true, ssl: true, redirects: true,  });
-      source = generator.generateHistoryObject();
+      requestModel = new RequestModel();
+      instance = new HistoryDataModel();
+      requestModel.listen(et);
+      instance.listen(et);
+      request = generator.http.transportRequest();
+      response = generator.http.response.arcResponse({ timings: true, ssl: true, redirects: true,  });
+      source = generator.http.history();
     });
 
     afterEach(async () => {
-      await generator.destroyHistoryData();
+      await store.destroyHistory();
     });
 
     it('stores history request', async () => {
-      await element[updateHistory](source, request, response);
-      const docs = await generator.getDatastoreHistoryData();
+      await instance[updateHistory](source, request, response);
+      const docs = await store.getDatastoreHistoryData();
       assert.lengthOf(docs, 1);
     });
 
     it('ignores when historyDisabled', async () => {
-      element.historyDisabled = true;
-      await element[updateHistory](source, request, response);
-      const docs = await generator.getDatastoreHistoryData();
+      instance.historyDisabled = true;
+      await instance[updateHistory](source, request, response);
+      const docs = await store.getDatastoreHistoryData();
       assert.lengthOf(docs, 0);
     });
 
     it('has the response object', async () => {
-      await element[updateHistory](source, request, response);
-      const docs = await generator.getDatastoreHistoryData();
+      await instance[updateHistory](source, request, response);
+      const docs = await store.getDatastoreHistoryData();
       // @ts-ignore
       assert.deepEqual(docs[0].response, response);
     });
   });
 
   describe(`${TransportEventTypes.response} event`, () => {
-    let element = /** @type HistoryDataModel */ (null);
+    /** @type HistoryDataModel */
+    let instance;
+    /** @type RequestModel */
+    let requestModel;
+    /** @type Element */
+    let et;
     let request = /** @type TransportRequest */ (null);
     let response = /** @type Response */ (null);
     let source = /** @type ARCHistoryRequest */ (null);
     beforeEach(async () => {
-      element = await modelFixture();
-      request = generator.generateTransportRequest();
-      response = generator.generateResponse({ timings: true, ssl: true, redirects: true,  });
-      source = generator.generateHistoryObject();
+      requestModel = new RequestModel();
+      instance = new HistoryDataModel();
+      requestModel.listen(et);
+      instance.listen(et);
+      request = generator.http.transportRequest();
+      response = generator.http.response.arcResponse({ timings: true, ssl: true, redirects: true,  });
+      source = generator.http.history();
     });
 
     afterEach(async () => {
-      await generator.destroyHistoryData();
-      await element.db.destroy();
+      await store.destroyHistory();
+      await instance.db.destroy();
     });
 
     async function getAll() {
-      const rsp = await element.db.allDocs({ include_docs: true });
+      const rsp = await instance.db.allDocs({ include_docs: true });
       return rsp.rows.map((i) => i.doc);
     }
 
@@ -372,18 +393,23 @@ describe('HistoryDataModel', () => {
   });
 
   describe('[prepareResponseBody]()', () => {
-    let element = /** @type HistoryDataModel */ (null);
+    /** @type HistoryDataModel */
+    let instance;
+    /** @type Element */
+    let et;
     before(async () => {
-      element = await basicFixture();
+      et = await etFixture();
+      instance = new HistoryDataModel();
+      instance.listen(et);
     });
 
     it('returns undefined when no argument', () => {
-      const result = element[prepareResponseBody](undefined);
+      const result = instance[prepareResponseBody](undefined);
       assert.isUndefined(result);
     });
 
     it('returns the same string', () => {
-      const result = element[prepareResponseBody]('test');
+      const result = instance[prepareResponseBody]('test');
       assert.equal(result, 'test');
     });
 
@@ -391,7 +417,7 @@ describe('HistoryDataModel', () => {
       const encoder = new TextEncoder();
       const view = encoder.encode('test');
       
-      const result = /** @type TransformedPayload */ (element[prepareResponseBody](view.buffer));
+      const result = /** @type TransformedPayload */ (instance[prepareResponseBody](view.buffer));
       assert.equal(result.type, 'ArrayBuffer');
       assert.typeOf(result.data, 'array');
     });
@@ -400,7 +426,7 @@ describe('HistoryDataModel', () => {
       const encoder = new TextEncoder();
       const view = encoder.encode('test');
       
-      const result = /** @type TransformedPayload */ (element[prepareResponseBody](view.buffer));
+      const result = /** @type TransformedPayload */ (instance[prepareResponseBody](view.buffer));
       const { buffer } = new Uint16Array(result.data);
       
       const text = String.fromCharCode.apply(null, new Uint16Array(buffer));
@@ -409,9 +435,14 @@ describe('HistoryDataModel', () => {
   });
 
   describe('[createEmptyTimings]()', () => {
-    let element = /** @type HistoryDataModel */ (null);
+    /** @type HistoryDataModel */
+    let instance;
+    /** @type Element */
+    let et;
     before(async () => {
-      element = await basicFixture();
+      et = await etFixture();
+      instance = new HistoryDataModel();
+      instance.listen(et);
     });
 
     [
@@ -424,7 +455,7 @@ describe('HistoryDataModel', () => {
       ['dns', '-1'],
     ].forEach(([prop, value]) => {
       it(`returns -1 for ${prop}`, () => {
-        const result = element[createEmptyTimings]();
+        const result = instance[createEmptyTimings]();
         assert.equal(result[prop], Number(value));
       });
     });

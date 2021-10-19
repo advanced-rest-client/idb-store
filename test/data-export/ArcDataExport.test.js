@@ -9,8 +9,7 @@ import {
   EncryptionEventTypes,
   ExportEvents,
 } from '@advanced-rest-client/events';
-import { MockedStore } from '../../index.js'
-import '../../client-certificate-model.js';
+import { MockedStore } from '../../index.js';
 import { exportFile, exportDrive, encryptData, ArcDataExport } from '../../src/ArcDataExport.js';
 
 /** @typedef {import('@advanced-rest-client/events').Cookies.ARCCookie} ARCCookie */

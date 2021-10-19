@@ -1,25 +1,25 @@
 import { assert } from '@open-wc/testing';
-import { DataGenerator } from '@advanced-rest-client/arc-data-generator';
 import { DataTestHelper } from './DataTestHelper.js';
 import { ImportNormalize } from '../../src/lib/ImportNormalize.js';
 import { ImportFactory } from '../../src/lib/ImportFactory.js';
+import { MockedStore } from '../../index.js';
 
 describe('Legacy data', () => {
-  const generator = new DataGenerator();
+  const store = new MockedStore();
 
   describe('Legacy import to datastore', () => {
     let originalData;
     let data;
     before(async () => {
-      await generator.destroySavedRequestData();
+      await store.destroySaved();
       const response = await DataTestHelper.getFile('legacy-data-import.json');
       originalData = JSON.parse(response);
     });
 
-    after(() => generator.destroySavedRequestData());
+    after(() => store.destroySaved());
 
     beforeEach(async () => {
-      data = generator.clone(originalData);
+      data = store.clone(originalData);
     });
 
     it('stores the data', async () => {
@@ -28,9 +28,9 @@ describe('Legacy data', () => {
       const factory = new ImportFactory();
       const errors = await factory.importData(parsed);
       assert.isUndefined(errors, 'has no data storing error');
-      const requests = await generator.getDatastoreRequestData();
+      const requests = await store.getDatastoreRequestData();
       assert.lengthOf(requests, 2, 'has 2 requests');
-      const projects = await generator.getDatastoreProjectsData();
+      const projects = await store.getDatastoreProjectsData();
       assert.lengthOf(projects, 1, 'Has 1 project');
     });
   });
@@ -39,15 +39,15 @@ describe('Legacy data', () => {
     let originalData;
     let data;
     before(async () => {
-      await generator.destroySavedRequestData();
+      await store.destroySaved();
       const response = await DataTestHelper.getFile('legacy-request-import.json');
       originalData = JSON.parse(response);
     });
 
-    after(() => generator.destroySavedRequestData());
+    after(() => store.destroySaved());
 
     beforeEach(async () => {
-      data = generator.clone(originalData);
+      data = store.clone(originalData);
     });
 
     it('stores the data', async () => {
@@ -56,7 +56,7 @@ describe('Legacy data', () => {
       const factory = new ImportFactory();
       const errors = await factory.importData(parsed);
       assert.isUndefined(errors, 'has no data storing error');
-      const requests = await generator.getDatastoreRequestData();
+      const requests = await store.getDatastoreRequestData();
       assert.lengthOf(requests, 1, 'has 1 request');
     });
   });

@@ -1,5 +1,5 @@
 import { fixture, assert } from '@open-wc/testing';
-import { DataGenerator } from '@advanced-rest-client/arc-data-generator';
+import { ArcMock } from '@advanced-rest-client/arc-mock';
 import { ArcModelEventTypes, ArcModelEvents } from '@advanced-rest-client/events';
 import '../../host-rules-model.js';
 
@@ -7,7 +7,7 @@ import '../../host-rules-model.js';
 /** @typedef {import('@advanced-rest-client/events').HostRule.ARCHostRule} ARCHostRule */
 
 describe('<host-rules-model> - Events based', () => {
-  const generator = new DataGenerator();
+  const generator = new ArcMock();
   /**
    * @return {Promise<HostRulesModel>}
    */

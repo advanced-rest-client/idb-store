@@ -1,38 +1,39 @@
 /* eslint-disable no-unused-vars */
 import { fixture, assert } from '@open-wc/testing';
-import { DataGenerator } from '@advanced-rest-client/arc-data-generator';
 import { ArcModelEventTypes, ArcModelEvents } from '@advanced-rest-client/events';
 import sinon from 'sinon';
-import 'chance/dist/chance.min.js';
-import '../../client-certificate-model.js';
+import { ArcMock } from '@advanced-rest-client/arc-mock';
+import { MockedStore } from '../../index.js'
+import { ClientCertificateModel } from '../../src/ClientCertificateModel.js';
 
-/** @typedef {import('../../src/ClientCertificateModel').ClientCertificateModel} ClientCertificateModel */
 /** @typedef {import('@advanced-rest-client/events').ClientCertificate.Certificate} Certificate */
 
 describe('<client-certificate-model> events based', () => {
-  const generator = new DataGenerator();
-  /**
-   * @return {Promise<ClientCertificateModel>}
-   */
-  async function basicFixture() {
-    return fixture('<client-certificate-model></client-certificate-model>');
+  const store = new MockedStore();
+  const generator = new ArcMock();
+  
+  async function etFixture() {
+    return fixture(`<div></div>`);
   }
 
   describe(`The list event`, () => {
     describe('With data', () => {
       before(async () => {
-        await generator.insertCertificatesData({
-          size: 30,
-        });
+        await store.insertCertificates(30);
       });
 
       after(async () => {
-        await generator.destroyClientCertificates();
+        await store.destroyClientCertificates();
       });
 
-      let element = /** @type ClientCertificateModel */ (null);
+      /** @type ClientCertificateModel */
+      let instance;
+      /** @type Element */
+      let et;
       beforeEach(async () => {
-        element = await basicFixture();
+        et = await etFixture();
+        instance = new ClientCertificateModel();
+        instance.listen(et);
       });
 
       it('returns a query result for default parameters', async () => {
@@ -40,7 +41,7 @@ describe('<client-certificate-model> events based', () => {
         assert.typeOf(result, 'object', 'result is an object');
         assert.typeOf(result.nextPageToken, 'string', 'has page token');
         assert.typeOf(result.items, 'array', 'has response items');
-        assert.lengthOf(result.items, element.defaultQueryOptions.limit, 'has default limit of items');
+        assert.lengthOf(result.items, instance.defaultQueryOptions.limit, 'has default limit of items');
       });
 
       it('respects "limit" parameter', async () => {
@@ -92,8 +93,14 @@ describe('<client-certificate-model> events based', () => {
     });
 
     describe('Without data', () => {
+      /** @type ClientCertificateModel */
+      let instance;
+      /** @type Element */
+      let et;
       beforeEach(async () => {
-        await basicFixture();
+        et = await etFixture();
+        instance = new ClientCertificateModel();
+        instance.listen(et);
       });
 
       it('returns empty array', async () => {
@@ -109,20 +116,22 @@ describe('<client-certificate-model> events based', () => {
     describe('String data', () => {
       let id;
       before(async () => {
-        const data = await generator.insertCertificatesData({
-          size: 1,
-        });
+        const data = await store.insertCertificates(1);
         id = data[0]._id;
       });
 
       after(async () => {
-        await generator.destroyClientCertificates();
+        await store.destroyClientCertificates();
       });
 
-      let element = /** @type ClientCertificateModel */ (null);
+      /** @type ClientCertificateModel */
+      let instance;
+      /** @type Element */
+      let et;
       beforeEach(async () => {
-        // eslint-disable-next-line no-unused-vars
-        element = await basicFixture();
+        et = await etFixture();
+        instance = new ClientCertificateModel();
+        instance.listen(et);
       });
 
       it('returns the document', async () => {
@@ -175,19 +184,22 @@ describe('<client-certificate-model> events based', () => {
     describe('Binary data', () => {
       let id;
       before(async () => {
-        const data = await generator.insertCertificatesData({
-          size: 1,
-          binary: true,
-        });
+        const data = await store.insertCertificates(1, { binary: true });
         id = data[0]._id;
       });
 
       after(async () => {
-        await generator.destroyClientCertificates();
+        await store.destroyClientCertificates();
       });
 
+      /** @type ClientCertificateModel */
+      let instance;
+      /** @type Element */
+      let et;
       beforeEach(async () => {
-        await basicFixture();
+        et = await etFixture();
+        instance = new ClientCertificateModel();
+        instance.listen(et);
       });
 
       it('has the certificate', async () => {
@@ -210,19 +222,22 @@ describe('<client-certificate-model> events based', () => {
     describe('No key data', () => {
       let id;
       before(async () => {
-        const data = await generator.insertCertificatesData({
-          size: 1,
-          noKey: true,
-        });
+        const data = await store.insertCertificates(1, { noKey: true });
         id = data[0]._id;
       });
 
       after(async () => {
-        await generator.destroyClientCertificates();
+        await store.destroyClientCertificates();
       });
 
+      /** @type ClientCertificateModel */
+      let instance;
+      /** @type Element */
+      let et;
       beforeEach(async () => {
-        await basicFixture();
+        et = await etFixture();
+        instance = new ClientCertificateModel();
+        instance.listen(et);
       });
 
       it('has no key', async () => {
@@ -234,22 +249,25 @@ describe('<client-certificate-model> events based', () => {
 
   describe(`The delete event`, () => {
     let id;
-    let element = /** @type ClientCertificateModel */ (null);
+    /** @type ClientCertificateModel */
+    let instance;
+    /** @type Element */
+    let et;
     beforeEach(async () => {
-      const data = await generator.insertCertificatesData({
-        size: 1,
-      });
+      const data = await store.insertCertificates(1);
       id = data[0]._id;
-      element = await basicFixture();
+      et = await etFixture();
+      instance = new ClientCertificateModel();
+      instance.listen(et);
     });
 
     afterEach(async () => {
-      await generator.destroyClientCertificates();
+      await store.destroyClientCertificates();
     });
 
     it('deletes the document', async () => {
       await ArcModelEvents.ClientCertificate.delete(document.body, id);
-      const all = await element.list();
+      const all = await instance.list();
       assert.lengthOf(all.items, 0);
     });
 
@@ -279,24 +297,29 @@ describe('<client-certificate-model> events based', () => {
   });
 
   describe(`The insert event`, () => {
-    let element = /** @type ClientCertificateModel */ (null);
+    /** @type ClientCertificateModel */
+    let instance;
+    /** @type Element */
+    let et;
     beforeEach(async () => {
-      element = await basicFixture();
+      et = await etFixture();
+      instance = new ClientCertificateModel();
+      instance.listen(et);
     });
 
     afterEach(async () => {
-      await generator.destroyClientCertificates();
+      await store.destroyClientCertificates();
     });
 
     it('inserts an item to the "index" store', async () => {
-      const item = (generator.generateClientCertificate());
+      const item = generator.certificates.clientCertificate();
       await ArcModelEvents.ClientCertificate.insert(document.body, item);
-      const all = await element.list();
+      const all = await instance.list();
       assert.lengthOf(all.items, 1);
     });
 
     it('returns chnagerecord of the "index" store', async () => {
-      const item = (generator.generateClientCertificate());
+      const item = generator.certificates.clientCertificate();
       const result = await ArcModelEvents.ClientCertificate.insert(document.body, item);
       assert.typeOf(result, 'object', 'returns an object');
       assert.typeOf(result.id, 'string', 'has an id');
@@ -306,18 +329,18 @@ describe('<client-certificate-model> events based', () => {
     });
 
     it('inserts an item to the "data" store', async () => {
-      const item = (generator.generateClientCertificate());
+      const item = generator.certificates.clientCertificate();
       const record = await ArcModelEvents.ClientCertificate.insert(document.body, item);
-      const saved = await element.get(record.id);
+      const saved = await instance.get(record.id);
       assert.typeOf(saved.cert, 'object');
     });
 
     it('stores binary data', async () => {
-      const item = (generator.generateClientCertificate({
+      const item = generator.certificates.clientCertificate({
         binary: true,
-      }));
+      });
       const record = await ArcModelEvents.ClientCertificate.insert(document.body, item);
-      const doc = await element.get(record.id);
+      const doc = await instance.get(record.id);
       const info = /** @type Certificate */ (doc.cert);
       assert.typeOf(info, 'object', 'certificate is set');
       assert.typeOf(info.data, 'Uint8Array', 'certificate data is set');
@@ -336,7 +359,7 @@ describe('<client-certificate-model> events based', () => {
     });
 
     it('throws when no type', async () => {
-      const item = (generator.generateClientCertificate());
+      const item = generator.certificates.clientCertificate();
       delete item.type;
       let err;
       try {
@@ -348,9 +371,9 @@ describe('<client-certificate-model> events based', () => {
     });
 
     it('dispatches change event', async () => {
-      const item = (generator.generateClientCertificate());
+      const item = generator.certificates.clientCertificate();
       const spy = sinon.spy();
-      element.addEventListener(ArcModelEventTypes.ClientCertificate.State.update, spy);
+      instance.addEventListener(ArcModelEventTypes.ClientCertificate.State.update, spy);
       const record = await ArcModelEvents.ClientCertificate.insert(document.body, item);
       assert.isTrue(spy.called, 'Event is dispatched');
       const e = spy.args[0][0];
@@ -378,26 +401,27 @@ describe('<client-certificate-model> events based', () => {
   });
 
   describe(`Datastore destroy event`, () => {
+    /** @type ClientCertificateModel */
+    let instance;
+    /** @type Element */
+    let et;
     beforeEach(async () => {
-      await generator.insertCertificatesData({
-        size: 10,
-      });
+      await store.insertCertificates(10);
+      et = await etFixture();
+      instance = new ClientCertificateModel();
+      instance.listen(et);
     });
 
     afterEach(async () => {
-      await generator.destroyClientCertificates();
-    });
-
-    beforeEach(async () => {
-      await basicFixture();
+      await store.destroyClientCertificates();
     });
 
     it('clears the data', async () => {
-      const [certsBefore, dataBefore] = await generator.getDatastoreClientCertificates();
+      const [certsBefore, dataBefore] = await store.getDatastoreClientCertificates();
       assert.lengthOf(certsBefore, 10, 'has index');
       assert.lengthOf(dataBefore, 10, 'has data');
       await ArcModelEvents.destroy(document.body, ['client-certificates']);
-      const [certs, data] = await generator.getDatastoreClientCertificates();
+      const [certs, data] = await store.getDatastoreClientCertificates();
       assert.lengthOf(certs, 0, 'index is cleared');
       assert.lengthOf(data, 0, 'data is cleared');
     });

@@ -1,31 +1,34 @@
-import { assert, fixture, html } from '@open-wc/testing';
-import { DataGenerator } from '@advanced-rest-client/arc-data-generator';
+import { assert, fixture } from '@open-wc/testing';
+import { ArcMock } from '@advanced-rest-client/arc-mock';
 import sinon from 'sinon';
 import { ArcModelEventTypes, ArcModelEvents } from '@advanced-rest-client/events';
-import '../../variables-model.js';
+import { VariablesModel, MockedStore } from '../../index.js';
 
-/** @typedef {import('../../src/VariablesModel').VariablesModel} VariablesModel */
 /** @typedef {import('@advanced-rest-client/events').Variable.ARCVariable} ARCVariable */
 /** @typedef {import('@advanced-rest-client/events').Variable.ARCEnvironment} ARCEnvironment */
 
 describe('VariablesModel', () => {
-  const generator = new DataGenerator();
-
-  /**
-   * @return {Promise<VariablesModel>}
-   */
-  async function basicFixture() {
-    return fixture(html`<variables-model></variables-model>`);
+  const store = new MockedStore();
+  const generator = new ArcMock();
+  
+  async function etFixture() {
+    return fixture(`<div></div>`);
   }
 
   describe('events API', () => {
     describe(`${ArcModelEventTypes.Environment.update} event`, () => {
+      /** @type VariablesModel */
+      let instance;
+      /** @type Element */
+      let et;
       beforeEach(async () => {
-        await basicFixture();
+        et = await etFixture();
+        instance = new VariablesModel();
+        instance.listen(et);
       });
 
       after(async () => {
-        await generator.destroyVariablesData();
+        await store.destroyVariables();
       });
 
       it('returns the changelog', async () => {
@@ -115,25 +118,29 @@ describe('VariablesModel', () => {
     });
 
     describe(`${ArcModelEventTypes.Environment.read} event`, () => {
+      /** @type VariablesModel */
+      let instance;
+      /** @type Element */
+      let et;
       beforeEach(async () => {
-        await basicFixture();
+        et = await etFixture();
+        instance = new VariablesModel();
+        instance.listen(et);
       });
 
       let created = /** @type ARCEnvironment */ (null);
       before(async () => {
-        const vars = /** @type ARCVariable[] */ (await generator.insertVariablesData({
-          size: 1,
-        }));
+        const vars = /** @type ARCVariable[] */ (await store.insertVariables(1));
         const entity = {
           name: vars[0].environment,
         };
-        const model = await basicFixture();
+        const model = new VariablesModel();
         const record = await model.updateEnvironment(entity);
         created = record.item;
       });
 
       after(async () => {
-        await generator.destroyVariablesData();
+        await store.destroyVariables();
       });
 
       it('reads existing environment by its name', async () => {
@@ -164,24 +171,28 @@ describe('VariablesModel', () => {
     });
 
     describe(`${ArcModelEventTypes.Environment.delete} event`, () => {
-      let element = /** @type VariablesModel */ (null);
+      /** @type VariablesModel */
+      let instance;
+      /** @type Element */
+      let et;
       let created = /** @type ARCEnvironment */ (null);
       beforeEach(async () => {
-        const vars = /** @type ARCVariable[] */ (await generator.insertVariablesData({
-          size: 1,
+        const vars = /** @type ARCVariable[] */ (await store.insertVariables(1, {
           randomEnv: true,
         }));
         const entity = {
           name: vars[0].environment,
         };
-        element = await basicFixture();
-        const model = await basicFixture();
+        et = await etFixture();
+        instance = new VariablesModel();
+        instance.listen(et);
+        const model = new VariablesModel();
         const record = await model.updateEnvironment(entity);
         created = record.item;
       });
 
       afterEach(async () => {
-        await generator.destroyVariablesData();
+        await store.destroyVariables();
       });
 
       it('removes an entity from the data store', async () => {
@@ -199,7 +210,7 @@ describe('VariablesModel', () => {
 
       it('dispatches the change event', async () => {
         const spy = sinon.spy();
-        element.addEventListener(ArcModelEventTypes.Environment.State.delete, spy);
+        instance.addEventListener(ArcModelEventTypes.Environment.State.delete, spy);
         await ArcModelEvents.Environment.delete(document.body, created._id);
         assert.isTrue(spy.called);
       });
@@ -215,13 +226,13 @@ describe('VariablesModel', () => {
       });
 
       it('removes environment variables', async () => {
-        const variable = /** @type ARCVariable */ (generator.generateVariableObject());
+        const variable = generator.variables.variable();
         variable.environment = created.name;
-        const response1 = await element.variableDb.post(variable);
+        const response1 = await instance.variableDb.post(variable);
         await ArcModelEvents.Environment.delete(document.body, created._id);
         let thrown = false;
         try {
-          await element.variableDb.get(response1.id)
+          await instance.variableDb.get(response1.id)
         } catch (e) {
           thrown = true;
         }
@@ -250,20 +261,25 @@ describe('VariablesModel', () => {
 
     describe(`${ArcModelEventTypes.Environment.list} event`, () => {
       before(async () => {
-        const model = await basicFixture();
+        const model = new VariablesModel();
         const items = Array(30).fill(0).map(() => ({
             name: 'a name',
           }));
         await model.environmentDb.bulkDocs(items);
       });
 
-      let element = /** @type VariablesModel */ (null);
+      /** @type VariablesModel */
+      let instance;
+      /** @type Element */
+      let et;
       beforeEach(async () => {
-        element = await basicFixture();
+        et = await etFixture();
+        instance = new VariablesModel();
+        instance.listen(et);
       });
 
       after(async () => {
-        await generator.destroyVariablesData();
+        await store.destroyVariables();
       });
 
       it('returns a query result for default parameters', async () => {
@@ -271,7 +287,7 @@ describe('VariablesModel', () => {
         assert.typeOf(result, 'object', 'result is an object');
         assert.typeOf(result.nextPageToken, 'string', 'has page token');
         assert.typeOf(result.items, 'array', 'has response items');
-        assert.lengthOf(result.items, element.defaultQueryOptions.limit, 'has default limit of items');
+        assert.lengthOf(result.items, instance.defaultQueryOptions.limit, 'has default limit of items');
       });
 
       it('respects "limit" parameter', async () => {
@@ -326,17 +342,22 @@ describe('VariablesModel', () => {
     });
 
     describe(`${ArcModelEventTypes.Variable.update} event`, () => {
-      let element = /** @type VariablesModel */ (null);
+      /** @type VariablesModel */
+      let instance;
+      /** @type Element */
+      let et;
       beforeEach(async () => {
-        element = await basicFixture();
+        et = await etFixture();
+        instance = new VariablesModel();
+        instance.listen(et);
       });
 
       after(async () => {
-        await generator.destroyVariablesData();
+        await store.destroyVariables();
       });
 
       it('returns the changelog', async () => {
-        const entity = /** @type ARCVariable */ (generator.generateVariableObject());
+        const entity = generator.variables.variable();
         const result = await ArcModelEvents.Variable.update(document.body, entity);
         assert.typeOf(result, 'object', 'returns an object');
         assert.typeOf(result.id, 'string', 'has an id');
@@ -346,9 +367,9 @@ describe('VariablesModel', () => {
       });
 
       it('creates a new variable in the data store', async () => {
-        const entity = /** @type ARCVariable */ (generator.generateVariableObject());
+        const entity = generator.variables.variable();
         const record = await ArcModelEvents.Variable.update(document.body, entity);
-        const result = await element.variableDb.get(record.id);
+        const result = await instance.variableDb.get(record.id);
         assert.typeOf(result, 'object');
         assert.equal(result.name, entity.name);
         assert.equal(result.value, entity.value);
@@ -356,7 +377,7 @@ describe('VariablesModel', () => {
       });
 
       it('throws when no variable', async () => {
-        const entity = /** @type ARCVariable */ (generator.generateVariableObject());
+        const entity = generator.variables.variable();
         delete entity.name;
         let thrown = false;
         try {
@@ -368,14 +389,14 @@ describe('VariablesModel', () => {
       });
 
       it('ignores unknown id', async () => {
-        const entity = /** @type ARCVariable */ (generator.generateVariableObject());
+        const entity = generator.variables.variable();
         entity._id = 'some id';
         const result = await ArcModelEvents.Variable.update(document.body, entity);
         assert.typeOf(result, 'object', 'returns an object');
       });
 
       it('updated existing entity', async () => {
-        const entity = /** @type ARCVariable */ (generator.generateVariableObject());
+        const entity = generator.variables.variable();
         const result1 = await ArcModelEvents.Variable.update(document.body, entity);
         entity._id = result1.id;
         entity._rev = result1.rev;
@@ -403,27 +424,31 @@ describe('VariablesModel', () => {
     });
 
     describe(`${ArcModelEventTypes.Variable.set} event`, () => {
-      let element = /** @type VariablesModel */ (null);
+      /** @type VariablesModel */
+      let instance;
+      /** @type Element */
+      let et;
       let created = /** @type ARCVariable[] */ (null);
       before(async () => {
-        created = await generator.insertVariablesAndEnvironments({ 
-          size: 2,
+        created = await store.insertVariablesAndEnvironments(2, {
           defaultEnv: true,
         });
       });
 
       after(async () => {
-        await generator.destroyVariablesData();
+        await store.destroyVariables();
       });
 
       beforeEach(async () => {
-        element = await basicFixture();
+        et = await etFixture();
+        instance = new VariablesModel();
+        instance.listen(et);
       });
 
       it('creates a new variable', async () => {
         const record = await ArcModelEvents.Variable.set(document.body, 'veryRandomVariable', 'with value');
         assert.typeOf(record, 'object', 'returns the change record');
-        const result = await element.variableDb.get(record.id);
+        const result = await instance.variableDb.get(record.id);
         assert.typeOf(result, 'object', 'has created variable');
         assert.equal(result.name, 'veryRandomVariable', 'the variable has the name');
         assert.equal(result.value, 'with value', 'the variable has the value');
@@ -434,24 +459,29 @@ describe('VariablesModel', () => {
         const record = await ArcModelEvents.Variable.set(document.body, name, 'updated value');
         assert.typeOf(record, 'object', 'returns the change record');
         assert.equal(record.id, _id, 'updated the existing variable');
-        const result = await element.variableDb.get(_id);
+        const result = await instance.variableDb.get(_id);
         assert.equal(result.value, 'updated value', 'the variable has the value');
       });
     });
 
     describe(`${ArcModelEventTypes.Variable.delete} event`, () => {
-      let element = /** @type VariablesModel */ (null);
+      /** @type VariablesModel */
+      let instance;
+      /** @type Element */
+      let et;
       let created = /** @type ARCVariable[] */ (null);
       beforeEach(async () => {
-        element = await basicFixture();
+        et = await etFixture();
+        instance = new VariablesModel();
+        instance.listen(et);
         // @ts-ignore
-        created = await generator.insertVariablesData({
+        created = await store.insertVariables({
           size: 1,
         });
       });
 
       afterEach(async () => {
-        await generator.destroyVariablesData();
+        await store.destroyVariables();
       });
 
       it('throws when no id', async () => {
@@ -468,7 +498,7 @@ describe('VariablesModel', () => {
         await ArcModelEvents.Variable.delete(document.body, created[0]._id);
         let thrown = false;
         try {
-          await element.variableDb.get(created[0]._id);
+          await instance.variableDb.get(created[0]._id);
         } catch (e) {
           thrown = true;
         }
@@ -483,7 +513,7 @@ describe('VariablesModel', () => {
 
       it('dispatches the change event', async () => {
         const spy = sinon.spy();
-        element.addEventListener(ArcModelEventTypes.Variable.State.delete, spy);
+        instance.addEventListener(ArcModelEventTypes.Variable.State.delete, spy);
         await ArcModelEvents.Variable.delete(document.body, created[0]._id);
         assert.isTrue(spy.called);
       });
@@ -506,14 +536,20 @@ describe('VariablesModel', () => {
 
     describe(`${ArcModelEventTypes.Variable.list} event`, () => {
       let created = /** @type ARCVariable[] */ (null);
+      /** @type VariablesModel */
+      let instance;
+      /** @type Element */
+      let et;
       beforeEach(async () => {
         // @ts-ignore
-        created = await generator.insertVariablesData({
+        created = await store.insertVariables({
           size: 32,
         });
-        const entity = /** @type ARCVariable */ (generator.generateVariableObject());
+        const entity = generator.variables.variable();
         entity.environment = created[0].environment;
-        await basicFixture();
+        et = await etFixture();
+        instance = new VariablesModel();
+        instance.listen(et);
         await ArcModelEvents.Variable.update(document.body, entity);
         await ArcModelEvents.Variable.update(document.body, {
           environment: '',
@@ -524,7 +560,7 @@ describe('VariablesModel', () => {
       });
 
       afterEach(async () => {
-        await generator.destroyVariablesData();
+        await store.destroyVariables();
       });
 
       it('returns a query result for default parameters', async () => {
@@ -595,35 +631,40 @@ describe('VariablesModel', () => {
     });
 
     describe(`${ArcModelEventTypes.destroy} event`, () => {
-      let element = /** @type VariablesModel */ (null);
+      /** @type VariablesModel */
+      let instance;
+      /** @type Element */
+      let et;
       beforeEach(async () => {
-        await generator.insertVariablesData();
-        element = await basicFixture();
+        await store.insertVariables();
+        et = await etFixture();
+        instance = new VariablesModel();
+        instance.listen(et);
       });
 
-      afterEach(() => generator.destroyVariablesData());
+      afterEach(() => store.destroyVariables());
 
       it('clears the data', async () => {
         await ArcModelEvents.destroy(document.body, ['variables']);
-        const result = await generator.getDatastoreVariablesData();
+        const result = await store.getDatastoreVariablesData();
         assert.lengthOf(result, 0);
       });
 
       it('ignores other stores', async () => {
         await ArcModelEvents.destroy(document.body, ['test store']);
-        const result = await generator.getDatastoreVariablesData();
+        const result = await store.getDatastoreVariablesData();
         assert.lengthOf(result, 25);
       });
 
       it('ignores no stores', async () => {
         await ArcModelEvents.destroy(document.body, []);
-        const result = await generator.getDatastoreVariablesData();
+        const result = await store.getDatastoreVariablesData();
         assert.lengthOf(result, 25);
       });
 
       it('dispatches deleted state events', async () => {
         const spy = sinon.spy();
-        element.addEventListener(ArcModelEventTypes.destroyed, spy);
+        instance.addEventListener(ArcModelEventTypes.destroyed, spy);
         await ArcModelEvents.destroy(document.body, ['variables']);
         assert.equal(spy.callCount, 2);
       });

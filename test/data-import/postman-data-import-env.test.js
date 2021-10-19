@@ -1,11 +1,11 @@
 import { assert } from '@open-wc/testing';
-import { DataGenerator } from '@advanced-rest-client/arc-data-generator';
 import { DataTestHelper } from './DataTestHelper.js';
 import { ImportNormalize } from '../../src/lib/ImportNormalize.js';
 import { ImportFactory } from '../../src/lib/ImportFactory.js';
+import { MockedStore } from '../../index.js';
 
 describe('postman-data-import-env', () => {
-  const generator = new DataGenerator();
+  const store = new MockedStore();
 
   describe('Postman import to datastore - environment', () => {
     let originalData;
@@ -15,10 +15,10 @@ describe('postman-data-import-env', () => {
       originalData = JSON.parse(response);
     });
 
-    after(() => generator.destroyVariablesData());
+    after(() => store.destroyVariables());
 
     beforeEach(async () => {
-      data = generator.clone(originalData);
+      data = store.clone(originalData);
     });
 
     it('stores the data', async () => {
@@ -27,7 +27,7 @@ describe('postman-data-import-env', () => {
       const factory = new ImportFactory();
       const errors = await factory.importData(parsed);
       assert.isUndefined(errors, 'has no errors');
-      const variables = await generator.getDatastoreVariablesData();
+      const variables = await store.getDatastoreVariablesData();
       assert.lengthOf(variables, 3, 'has all variables');
     });
 
@@ -37,7 +37,7 @@ describe('postman-data-import-env', () => {
       const factory = new ImportFactory();
       const errors = await factory.importData(parsed);
       assert.isUndefined(errors, 'has no errors');
-      const variables = await generator.getDatastoreVariablesData();
+      const variables = await store.getDatastoreVariablesData();
       assert.lengthOf(variables, 3, 'has all variables');
     });
   });

@@ -1,4 +1,4 @@
-# ARC data models
+# ARC's IDB data store
 
 Data models for Advanced REST Client application. This module contains the logic used by the application to store and restore data to the UI.
 
@@ -8,9 +8,9 @@ The first provides access to function which call creates and dispatches events o
 
 It is highly recommended to use this models with the support of typescript. The library and each component has types definition with documentation for convenient use. Types are declared in `@advanced-rest-client/events` module.
 
-[![Published on NPM](https://img.shields.io/npm/v/@advanced-rest-client/arc-models.svg)](https://www.npmjs.com/package/@advanced-rest-client/arc-models)
+[![Published on NPM](https://img.shields.io/npm/v/@advanced-rest-client/idb-store.svg)](https://www.npmjs.com/package/@advanced-rest-client/idb-store)
 
-[![Tests and publishing](https://github.com/advanced-rest-client/arc-models/actions/workflows/deployment.yml/badge.svg)](https://github.com/advanced-rest-client/arc-models/actions/workflows/deployment.yml)
+[![Tests and publishing](https://github.com/advanced-rest-client/idb-store/actions/workflows/deployment.yml/badge.svg)](https://github.com/advanced-rest-client/idb-store/actions/workflows/deployment.yml)
 
 ## Usage
 
@@ -20,7 +20,7 @@ and use the same models to add storage support.
 ### Installation
 
 ```sh
-npm install --save @advanced-rest-client/arc-models
+npm install --save @advanced-rest-client/idb-store
 ```
 
 ### Working with the events
@@ -31,8 +31,11 @@ It is more convenient than direct use of the library in each component as it's e
 Say, you want to list ARC requests data stored in the application. This is supported by the `request-model`. You can access the data by dispatching the list event:
 
 ```javascript
-import '@advanced-rest-client/arc-models/request-model.js';
-import { ArcModelEvents } '@advanced-rest-client/arc-models';
+import { RequestModel } from '@advanced-rest-client/idb-store';
+import { ArcModelEvents } '@advanced-rest-client/events';
+
+const store = new RequestModel(window);
+store.listen(window);
 
 const result = await ArcModelEvents.Request.list(document.body, 'saved', {
   limit: 25,
@@ -47,8 +50,11 @@ it always accept an object with the `limit` and `nextPageToken` property. Both a
 The limit tells the model how many entities to return with the response. Then next page token is returned with each list result and contains hashed data about the current position in the pagination.
 
 ```javascript
-import '@advanced-rest-client/arc-models/request-model.js';
-import { ArcModelEvents } '@advanced-rest-client/arc-models';
+import { RequestModel } from '@advanced-rest-client/idb-store';
+import { ArcModelEvents } '@advanced-rest-client/events';
+
+const store = new RequestModel(window);
+store.listen(window);
 
 const result = await ArcModelEvents.Request.list(document.body, 'saved', {
   limit: 25,
@@ -67,145 +73,11 @@ const next = await ArcModelEvents.Request.list(document.body, 'saved', {
 
 Note that limit has to be defined for each call as the page cursor does not  store this information.
 
-### In an html file
-
-```html
-<html>
-  <head>
-    <script type="module">
-      import '@advanced-rest-client/arc-models/auth-data-model.js';
-      import '@advanced-rest-client/arc-models/host-rules-model.js';
-      import '@advanced-rest-client/arc-models/project-model.js';
-      import '@advanced-rest-client/arc-models/request-model.js';
-      import '@advanced-rest-client/arc-models/rest-api-model.js';
-      import '@advanced-rest-client/arc-models/url-indexer.js';
-      import '@advanced-rest-client/arc-models/variables-model.js';
-      import '@advanced-rest-client/arc-models/websocket-url-history-model.js';
-    </script>
-  </head>
-  <body>
-    <auth-data-model></auth-data-model>
-    <host-rules-model></host-rules-model>
-    <project-model></project-model>
-    <request-model></request-model>
-    <rest-api-model></rest-api-model>
-    <url-indexer></url-indexer>
-    <variables-model></variables-model>
-    <websocket-url-history-model></websocket-url-history-model>
-  </body>
-</html>
-```
-
-### In a LitElement template
-
-```javascript
-import { LitElement, html } from 'lit-element';
-import '@advanced-rest-client/arc-models/auth-data-model.js';
-import '@advanced-rest-client/arc-models/host-rules-model.js';
-import '@advanced-rest-client/arc-models/project-model.js';
-import '@advanced-rest-client/arc-models/request-model.js';
-import '@advanced-rest-client/arc-models/rest-api-model.js';
-import '@advanced-rest-client/arc-models/url-indexer.js';
-import '@advanced-rest-client/arc-models/variables-model.js';
-import '@advanced-rest-client/arc-models/websocket-url-history-model.js';
-
-class SampleElement extends LitElement {
-  render() { `
-    <auth-data-model></auth-data-model>
-    <host-rules-model></host-rules-model>
-    <project-model></project-model>
-    <request-model></request-model>
-    <rest-api-model></rest-api-model>
-    <url-indexer></url-indexer>
-    <variables-model></variables-model>
-    <websocket-url-history-model></websocket-url-history-model>
-    `;
-  }
-}
-customElements.define('sample-element', SampleElement);
-```
-
-### In a Polymer 3 element
-
-```js
-import {PolymerElement, html} from '@polymer/polymer';
-import '@advanced-rest-client/arc-models/auth-data-model.js';
-import '@advanced-rest-client/arc-models/host-rules-model.js';
-import '@advanced-rest-client/arc-models/project-model.js';
-import '@advanced-rest-client/arc-models/request-model.js';
-import '@advanced-rest-client/arc-models/rest-api-model.js';
-import '@advanced-rest-client/arc-models/url-indexer.js';
-import '@advanced-rest-client/arc-models/variables-model.js';
-import '@advanced-rest-client/arc-models/websocket-url-history-model.js';
-
-class SampleElement extends PolymerElement {
-  static get template() {
-    return html`<auth-data-model></auth-data-model>
-    <host-rules-model></host-rules-model>
-    <project-model></project-model>
-    <request-model></request-model>
-    <rest-api-model></rest-api-model>
-    <url-indexer></url-indexer>
-    <variables-model></variables-model>
-    <websocket-url-history-model></websocket-url-history-model>`;
-  }
-}
-customElements.define('sample-element', SampleElement);
-```
-
-## Export elements
-
-### ImportDataInspectorElement
-
-An element to visually inspect ARC export object. It is used by ARC during the import flow.
-
-```html
-<import-data-inspector .data="${data}" @cancel="${this.cancelled}" @import="${this.imported}"></import-data-inspector>
-```
-
-The data object is the `ArcExportObject` declare in the `@advanced-rest-client/events/DataExport` declaration.
-
-### ExportOptionsElement
-
-An element to present the user with the file export options handled by the application.
-
-```html
-<export-options file="my-demo-file.arc" provider="drive" parentId="drive file id" withEncrypt></export-options>
-```
-
-The element dispatches event defined in `GoogleDriveEventTypes.listAppFolders` to request the application to list all application created folder in the Google Drive application.
-
-### ArcExportFormElement
-
-An element that contains a UI to present ARC database export options. It communicates with the `ArcDataExportElement` via events.
-
-```html
-<arc-export-form withEncrypt provider="drive" parentId="drive file id"></arc-export-form>
-```
-
-### ArcDataExportElement
-
-A component that handles ARC data export logic via events. It takes care for creating an export object for ARC data, encrypting the content (when requested) and to produce communicate with the export provides via event.
-
-This element should be inserted into the DOM somewhere in the project.
-
-```html
-<are-data-export appVersion="major.minor.patch" electronCookies></are-data-export>
-```
-
-### ArcDataImportElement
-
-The opposite of the `ArcDataExportElement` element. Provides the logic for the import flow and communicates with other components via the events system to finish the import flow.
-
-```html
-<are-data-import></are-data-import>
-```
-
 ## Development
 
 ```sh
-git clone https://github.com/@advanced-rest-client/arc-models
-cd arc-models
+git clone https://github.com/@advanced-rest-client/idb-store
+cd idb-store
 npm install
 ```
 

@@ -1,41 +1,42 @@
-import { fixture, assert, html } from '@open-wc/testing';
-import { DataGenerator } from '@advanced-rest-client/arc-data-generator';
+import { fixture, assert } from '@open-wc/testing';
+import { ArcMock } from '@advanced-rest-client/arc-mock';
 import sinon from 'sinon';
 import { ArcModelEventTypes, ArcModelEvents } from '@advanced-rest-client/events';
-import '../../websocket-url-history-model.js';
-
+import { WebsocketUrlHistoryModel } from '../../src/WebsocketUrlHistoryModel.js';
+import { MockedStore } from '../../index.js';
 
 /* eslint-disable require-atomic-updates */
 /* eslint-disable no-param-reassign */
 /* eslint-disable no-unused-vars */
 
-/** @typedef {import('../../src/WebsocketUrlHistoryModel').WebsocketUrlHistoryModel} WebsocketUrlHistoryModel */
 /** @typedef {import('@advanced-rest-client/events').UrlHistory.ARCWebsocketUrlHistory} ARCWebsocketUrlHistory */
 
 describe('WebsocketUrlHistoryModel - Events API', () => {
-  /**
-   * @return {Promise<WebsocketUrlHistoryModel>}
-   */
-  async function basicFixture() {
-    return fixture(html`<websocket-url-history-model></websocket-url-history-model>`);
+  const store = new MockedStore();
+  const generator = new ArcMock();
+  
+  async function etFixture() {
+    return fixture(`<div></div>`);
   }
-
-  const generator = new DataGenerator();
-
   describe(`${ArcModelEventTypes.WSUrlHistory.list} event`, () => {
     before(async () => {
-      const model = await basicFixture();
-      const projects = /** @type ARCWebsocketUrlHistory[] */ (generator.generateUrlsData({ size: 30 }));
+      const model = new WebsocketUrlHistoryModel();
+      const projects = generator.urls.urls(30);
       await model.db.bulkDocs(projects);
     });
 
-    let element = /** @type WebsocketUrlHistoryModel */ (null);
+    /** @type WebsocketUrlHistoryModel */
+    let instance;
+    /** @type Element */
+    let et;
     beforeEach(async () => {
-      element = await basicFixture();
+      et = await etFixture();
+      instance = new WebsocketUrlHistoryModel();
+      instance.listen(et);
     });
 
     after(async () => {
-      await generator.destroyWebsocketsData();
+      await store.destroyWebsockets();
     });
 
     it('returns a query result for default parameters', async () => {
@@ -43,7 +44,7 @@ describe('WebsocketUrlHistoryModel - Events API', () => {
       assert.typeOf(result, 'object', 'result is an object');
       assert.typeOf(result.nextPageToken, 'string', 'has page token');
       assert.typeOf(result.items, 'array', 'has response items');
-      assert.lengthOf(result.items, element.defaultQueryOptions.limit, 'has default limit of items');
+      assert.lengthOf(result.items, instance.defaultQueryOptions.limit, 'has default limit of items');
     });
 
     it('respects "limit" parameter', async () => {
@@ -74,10 +75,10 @@ describe('WebsocketUrlHistoryModel - Events API', () => {
     });
 
     it('adds midnight to an item when not there', async () => {
-      const entity = /** @type ARCWebsocketUrlHistory */ (generator.generateUrlObject());
+      const entity = generator.urls.url();
       entity._id = 'arc://custom-no-midnight/value';
       delete entity.midnight;
-      await element.update(entity);
+      await instance.update(entity);
       const result = await ArcModelEvents.WSUrlHistory.list(document.body, {
         limit: 31,
       });
@@ -86,10 +87,10 @@ describe('WebsocketUrlHistoryModel - Events API', () => {
     });
 
     it('uses existing "midnight" value when set', async () => {
-      const entity = /** @type ARCWebsocketUrlHistory */ (generator.generateUrlObject());
+      const entity = generator.urls.url();
       entity._id = 'arc://custom-with-midnight/value';
       entity.midnight = 100;
-      await element.update(entity);
+      await instance.update(entity);
       const result = await ArcModelEvents.WSUrlHistory.list(document.body, {
         limit: 32,
       });
@@ -99,17 +100,22 @@ describe('WebsocketUrlHistoryModel - Events API', () => {
   });
 
   describe(`${ArcModelEventTypes.WSUrlHistory.insert} event`, () => {
-    let element = /** @type WebsocketUrlHistoryModel */ (null);
+    /** @type WebsocketUrlHistoryModel */
+    let instance;
+    /** @type Element */
+    let et;
     beforeEach(async () => {
-      element = await basicFixture();
+      et = await etFixture();
+      instance = new WebsocketUrlHistoryModel();
+      instance.listen(et);
     });
 
     afterEach(async () => {
-      await generator.destroyWebsocketsData();
+      await store.destroyWebsockets();
     });
 
     it('returns the changelog', async () => {
-      const entity = /** @type ARCWebsocketUrlHistory */ (generator.generateUrlObject());
+      const entity = generator.urls.url();
       const result = await ArcModelEvents.WSUrlHistory.insert(document.body, entity._id);
       assert.typeOf(result, 'object', 'returns an object');
       assert.typeOf(result.id, 'string', 'has an id');
@@ -119,9 +125,9 @@ describe('WebsocketUrlHistoryModel - Events API', () => {
     });
 
     it('creates an item in the data store', async () => {
-      const entity = /** @type ARCWebsocketUrlHistory */ (generator.generateUrlObject());
+      const entity = generator.urls.url();
       await ArcModelEvents.WSUrlHistory.insert(document.body, entity._id);
-      const result = /** @type ARCWebsocketUrlHistory */ (await element.db.get(entity._id));
+      const result = /** @type ARCWebsocketUrlHistory */ (await instance.db.get(entity._id));
       assert.typeOf(result, 'object', 'returns an object');
       assert.equal(result._id, entity._id, 'has the id');
       assert.typeOf(result._rev, 'string', 'has a rev');
@@ -130,17 +136,17 @@ describe('WebsocketUrlHistoryModel - Events API', () => {
     });
 
     it('updates the counter on the same item', async () => {
-      const entity = /** @type ARCWebsocketUrlHistory */ (generator.generateUrlObject());
+      const entity = generator.urls.url();
       await ArcModelEvents.WSUrlHistory.insert(document.body, entity._id);
       await ArcModelEvents.WSUrlHistory.insert(document.body, entity._id);
-      const result = /** @type ARCWebsocketUrlHistory */ (await element.db.get(entity._id));
+      const result = /** @type ARCWebsocketUrlHistory */ (await instance.db.get(entity._id));
       assert.equal(result.cnt, 2, 'has default cnt property');
     });
 
     it('dispatches change event', async () => {
-      const entity = /** @type ARCWebsocketUrlHistory */ (generator.generateUrlObject());
+      const entity = generator.urls.url();
       const spy = sinon.spy();
-      element.addEventListener(ArcModelEventTypes.WSUrlHistory.State.update, spy);
+      instance.addEventListener(ArcModelEventTypes.WSUrlHistory.State.update, spy);
       await ArcModelEvents.WSUrlHistory.insert(document.body, entity._id);
       assert.isTrue(spy.calledOnce);
     });
@@ -156,13 +162,13 @@ describe('WebsocketUrlHistoryModel - Events API', () => {
     });
 
     it('adds midnight value', async () => {
-      const entity = /** @type ARCWebsocketUrlHistory */ (generator.generateUrlObject());
+      const entity = generator.urls.url();
       const result = await ArcModelEvents.WSUrlHistory.insert(document.body, entity._id);
       assert.typeOf(result.item.midnight, 'number');
     });
 
     it('adds url value', async () => {
-      const entity = /** @type ARCWebsocketUrlHistory */ (generator.generateUrlObject());
+      const entity = generator.urls.url();
       delete entity.url;
       const result = await ArcModelEvents.WSUrlHistory.insert(document.body, entity._id);
       assert.typeOf(result.item.url, 'string');
@@ -178,18 +184,23 @@ describe('WebsocketUrlHistoryModel - Events API', () => {
   describe(`${ArcModelEventTypes.WSUrlHistory.query} event`, () => {
     let created = /** @type ARCWebsocketUrlHistory[] */ (null)
     before(async () => {
-      const model = await basicFixture();
-      created = /** @type ARCWebsocketUrlHistory[] */ (generator.generateUrlsData({ size: 30 }));
+      const model = new WebsocketUrlHistoryModel();
+      created = generator.urls.urls(30);
       await model.db.bulkDocs(created);
     });
 
-    let element = /** @type WebsocketUrlHistoryModel */ (null);
+    /** @type WebsocketUrlHistoryModel */
+    let instance;
+    /** @type Element */
+    let et;
     beforeEach(async () => {
-      element = await basicFixture();
+      et = await etFixture();
+      instance = new WebsocketUrlHistoryModel();
+      instance.listen(et);
     });
 
     after(async () => {
-      await generator.destroyWebsocketsData();
+      await store.destroyWebsockets();
     });
 
     it('returns a list of matched results', async () => {
@@ -209,40 +220,40 @@ describe('WebsocketUrlHistoryModel - Events API', () => {
     });
 
     it('adds midnight to an item when not there', async () => {
-      const entity = /** @type ARCWebsocketUrlHistory */ (generator.generateUrlObject());
+      const entity = generator.urls.url();
       entity._id = 'arc://custom-no-midnight/value';
       delete entity.midnight;
-      await element.update(entity);
+      await instance.update(entity);
       const result = await ArcModelEvents.WSUrlHistory.query(document.body, entity._id);
       const [item] = result;
       assert.typeOf(item.midnight, 'number');
     });
 
     it('uses existing "midnight" value when set', async () => {
-      const entity = /** @type ARCWebsocketUrlHistory */ (generator.generateUrlObject());
+      const entity = generator.urls.url();
       entity._id = 'arc://custom-with-midnight/value';
       entity.midnight = 100;
-      await element.update(entity);
+      await instance.update(entity);
       const result = await ArcModelEvents.WSUrlHistory.query(document.body, entity._id);
       const [item] = result;
       assert.equal(item.midnight, 100);
     });
 
     it('adds url to an item when not there', async () => {
-      const entity = /** @type ARCWebsocketUrlHistory */ (generator.generateUrlObject());
+      const entity = generator.urls.url();
       entity._id = 'arc://custom-no-url/value';
       delete entity.url;
-      await element.update(entity);
+      await instance.update(entity);
       const result = await ArcModelEvents.WSUrlHistory.query(document.body, entity._id);
       const [item] = result;
       assert.typeOf(item.url, 'string');
     });
 
     it('uses existing "url" value when set', async () => {
-      const entity = /** @type ARCWebsocketUrlHistory */ (generator.generateUrlObject());
+      const entity = generator.urls.url();
       entity._id = 'arc://custom-with-url/value';
       entity.url = 'https://API.domain.com';
-      await element.update(entity);
+      await instance.update(entity);
       const result = await ArcModelEvents.WSUrlHistory.query(document.body, entity._id);
       const [item] = result;
       assert.equal(item.url, 'https://API.domain.com');
@@ -257,19 +268,25 @@ describe('WebsocketUrlHistoryModel - Events API', () => {
   });
 
   describe(`${ArcModelEventTypes.destroy} event`, () => {
+    /** @type WebsocketUrlHistoryModel */
+    let instance;
+    /** @type Element */
+    let et;
     beforeEach(async () => {
-      const created = /** @type ARCWebsocketUrlHistory[] */ (generator.generateUrlsData({ size: 30 }));
-      const model = await basicFixture();
-      await model.db.bulkDocs(created);
+      const created = generator.urls.urls(30);
+      et = await etFixture();
+      instance = new WebsocketUrlHistoryModel();
+      instance.listen(et);
+      await instance.db.bulkDocs(created);
     });
 
     after(async () => {
-      await generator.destroyWebsocketsData();
+      await store.destroyWebsockets();
     });
 
     it('deletes saved model', async () => {
       await ArcModelEvents.destroy(document.body, ['websocket-url-history'])
-      const result = await generator.getDatastoreWebsocketsData();
+      const result = await store.getDatastoreWebsocketsData();
       assert.deepEqual(result, []);
     });
   });

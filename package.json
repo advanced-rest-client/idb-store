@@ -1,7 +1,7 @@
 {
   "name": "@advanced-rest-client/idb-store",
   "description": "Event based access to ARC datastores",
-  "version": "0.0.1",
+  "version": "1.0.0",
   "license": "Apache-2.0",
   "main": "index.js",
   "module": "index.js",
@@ -41,7 +41,6 @@
     "@web/dev-server": "^0.1.25",
     "@web/test-runner": "^0.13.20",
     "@web/test-runner-playwright": "^0.8.8",
-    "chance": "^1.1.8",
     "eslint": "^8.0.1",
     "eslint-config-prettier": "^8.3.0",
     "husky": "^7.0.2",

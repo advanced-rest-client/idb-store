@@ -1,11 +1,11 @@
 import { assert } from '@open-wc/testing';
-import { DataGenerator } from '@advanced-rest-client/arc-data-generator';
 import { DataTestHelper } from './DataTestHelper.js';
 import { ImportNormalize } from '../../src/lib/ImportNormalize.js';
 import { ImportFactory } from '../../src/lib/ImportFactory.js';
+import { MockedStore } from '../../index.js';
 
 describe('Postman import to datastore - backup data', () => {
-  const generator = new DataGenerator();
+  const store = new MockedStore();
 
   let originalData;
   let data;
@@ -15,12 +15,12 @@ describe('Postman import to datastore - backup data', () => {
   });
 
   after(async () => {
-    await generator.destroySavedRequestData();
-    await generator.destroyVariablesData();
+    await store.destroySaved();
+    await store.destroyVariables();
   });
 
   beforeEach(async () => {
-    data = generator.clone(originalData);
+    data = store.clone(originalData);
   });
 
   it('Stores the data', async () => {
@@ -29,13 +29,13 @@ describe('Postman import to datastore - backup data', () => {
     const factory = new ImportFactory();
     const errors = await factory.importData(parsed);
     assert.isUndefined(errors, 'has no errors');
-    const requests = await generator.getDatastoreRequestData();
+    const requests = await store.getDatastoreRequestData();
     assert.lengthOf(requests, 46, 'has all requests');
-    const projects = await generator.getDatastoreProjectsData();
+    const projects = await store.getDatastoreProjectsData();
     assert.lengthOf(projects, 2, 'has all projects');
-    const variables = await generator.getDatastoreVariablesData();
+    const variables = await store.getDatastoreVariablesData();
     assert.lengthOf(variables, 5, 'has all variables');
-    const environments = await generator.getDatastoreEnvironmentsData();
+    const environments = await store.getDatastoreEnvironmentsData();
     assert.lengthOf(environments, 2, 'has all environments');
   });
 
@@ -45,14 +45,14 @@ describe('Postman import to datastore - backup data', () => {
     const factory = new ImportFactory();
     const errors = await factory.importData(parsed);
     assert.isUndefined(errors, 'has no errors');
-    const requests = await generator.getDatastoreRequestData();
+    const requests = await store.getDatastoreRequestData();
     assert.lengthOf(requests, 46, 'has all requests');
-    const projects = await generator.getDatastoreProjectsData();
+    const projects = await store.getDatastoreProjectsData();
     assert.lengthOf(projects, 2, 'has all projects');
-    const variables = await generator.getDatastoreVariablesData();
+    const variables = await store.getDatastoreVariablesData();
     // there are no keys for variables.
     assert.lengthOf(variables, 10, 'has all variables');
-    const environments = await generator.getDatastoreEnvironmentsData();
+    const environments = await store.getDatastoreEnvironmentsData();
     assert.lengthOf(environments, 2, 'has all environments');
   });
 });

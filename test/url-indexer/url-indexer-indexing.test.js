@@ -1,24 +1,16 @@
-import { fixture, assert, aTimeout } from '@open-wc/testing';
+import { assert, aTimeout } from '@open-wc/testing';
 import 'pouchdb/dist/pouchdb.js';
 import { ArcModelEvents } from '@advanced-rest-client/events';
 import { DbHelper } from './db-helper.js';
-import '../../url-indexer.js';
 import {
+  UrlIndexer,
   storeIndexes,
   getIndexedDataAll,
 } from '../../src/UrlIndexer.js';
 
 /* global PouchDB */
 
-/** @typedef {import('../../src/UrlIndexer').UrlIndexer} UrlIndexer */
-
 describe('UrlIndexer', () => {
-  /**
-   * @return {Promise<UrlIndexer>}
-   */
-  async function basicFixture() {
-    return fixture('<url-indexer></url-indexer>');
-  }
 
   before(async () => {
     await DbHelper.destroy();
@@ -27,10 +19,11 @@ describe('UrlIndexer', () => {
   describe('Indexing requests', () => {
     describe('Data indexing', () => {
       describe('[storeIndexes]()', () => {
-        let element = /** @type UrlIndexer */ (null);
+        /** @type UrlIndexer */
+      let instance;
         let inserts;
         beforeEach(async () => {
-          element = await basicFixture();
+          instance = new UrlIndexer(window);
           inserts = [
             {
               id: 't1',
@@ -48,24 +41,25 @@ describe('UrlIndexer', () => {
         });
 
         afterEach(async () => {
-          const db = await element.openSearchStore();
+          const db = await instance.openSearchStore();
           db.close();
           await DbHelper.clearData();
         });
 
         it('Stores data into the data store', async () => {
-          const db = await element.openSearchStore();
-          await element[storeIndexes](db, inserts);
+          const db = await instance.openSearchStore();
+          await instance[storeIndexes](db, inserts);
           const data = await DbHelper.readAllIndexes();
           assert.lengthOf(data, 2);
         });
       });
 
       describe('[getIndexedDataAll]()', () => {
-        let element = /** @type UrlIndexer */ (null);
+        /** @type UrlIndexer */
+      let instance;
         let inserts;
         beforeEach(async () => {
-          element = await basicFixture();
+          instance = new UrlIndexer(window);
           inserts = [
             {
               id: 't1',
@@ -89,30 +83,30 @@ describe('UrlIndexer', () => {
         });
 
         afterEach(async () => {
-          const db = await element.openSearchStore();
+          const db = await instance.openSearchStore();
           db.close();
           await DbHelper.clearData();
         });
 
         it('Results to empty array when no indexes found', async () => {
-          const db = await element.openSearchStore();
-          const result = await element[getIndexedDataAll](db, ['test']);
+          const db = await instance.openSearchStore();
+          const result = await instance[getIndexedDataAll](db, ['test']);
           assert.typeOf(result, 'object');
           assert.lengthOf(Object.keys(result), 0);
         });
 
         it('Returns requests for given ID', async () => {
-          const db = await element.openSearchStore();
-          await element[storeIndexes](db, inserts);
-          const result = await element[getIndexedDataAll](db, ['r1']);
+          const db = await instance.openSearchStore();
+          await instance[storeIndexes](db, inserts);
+          const result = await instance[getIndexedDataAll](db, ['r1']);
           assert.typeOf(result.r1, 'array');
           assert.lengthOf(result.r1, 2);
         });
 
         it('returns multiple requests', async () => {
-          const db = await element.openSearchStore();
-          await element[storeIndexes](db, inserts);
-          const result = await element[getIndexedDataAll](db, ['r1', 'r2']);
+          const db = await instance.openSearchStore();
+          await instance[storeIndexes](db, inserts);
+          const result = await instance[getIndexedDataAll](db, ['r1', 'r2']);
           assert.typeOf(result.r1, 'array');
           assert.lengthOf(result.r1, 2);
           assert.typeOf(result.r2, 'array');
@@ -121,10 +115,11 @@ describe('UrlIndexer', () => {
       });
 
       describe('index()', () => {
-        let element = /** @type UrlIndexer */ (null);
+        /** @type UrlIndexer */
+      let instance;
         let requests;
         beforeEach(async () => {
-          element = await basicFixture();
+          instance = new UrlIndexer(window);
           requests = [
             {
               id: 'test-id-1',
@@ -140,21 +135,21 @@ describe('UrlIndexer', () => {
         });
 
         afterEach(async () => {
-          const db = await element.openSearchStore();
+          const db = await instance.openSearchStore();
           db.close();
           await DbHelper.clearData();
         });
 
         it('Stores indexes in the data store', async () => {
-          await element.index(requests);
+          await instance.index(requests);
           const result = await DbHelper.readAllIndexes();
           assert.typeOf(result, 'array');
           assert.lengthOf(result, 11);
         });
 
         it('does not insert repeated data', async () => {
-          await element.index(requests);
-          await element.index(requests);
+          await instance.index(requests);
+          await instance.index(requests);
           const result = await DbHelper.readAllIndexes();
           assert.typeOf(result, 'array');
           assert.lengthOf(result, 11);
@@ -224,13 +219,14 @@ describe('UrlIndexer', () => {
         const REQUEST_ID = 'test-id';
         const REQUEST_TYPE = 'saved';
 
-        let element = /** @type UrlIndexer */ (null);
+        /** @type UrlIndexer */
+      let instance;
         beforeEach(async () => {
-          element = await basicFixture();
+          instance = new UrlIndexer(window);
         });
 
         afterEach(async () => {
-          const db = await element.openSearchStore();
+          const db = await instance.openSearchStore();
           db.close();
         });
 
@@ -257,7 +253,7 @@ describe('UrlIndexer', () => {
         }
 
         it('Indexes single request', async () => {
-          await element.index([
+          await instance.index([
             {
               url: FULL_URL,
               id: REQUEST_ID,
@@ -265,7 +261,7 @@ describe('UrlIndexer', () => {
             },
           ]);
           const data = await readAllIndexes();
-          assert.lengthOf(data, 8, 'Has 8 stored elements');
+          assert.lengthOf(data, 8, 'Has 8 stored instances');
 
           testIndexStructure(FULL_URL, 'Full url', data);
           testIndexStructure('domain.com/api?a=b&c=d', 'Authority', data);
@@ -278,7 +274,7 @@ describe('UrlIndexer', () => {
         });
 
         it('Re-Indexes existing request', async () => {
-          await element.index([
+          await instance.index([
             {
               url: FULL_URL,
               id: REQUEST_ID,
@@ -286,12 +282,12 @@ describe('UrlIndexer', () => {
             },
           ]);
           const data = await readAllIndexes();
-          assert.lengthOf(data, 8, 'Has 8 stored elements');
+          assert.lengthOf(data, 8, 'Has 8 stored instances');
         });
 
         it('Creates new index for different request ID', async () => {
           const OTHER_ID = 'abc';
-          await element.index([
+          await instance.index([
             {
               url: FULL_URL,
               id: OTHER_ID,
@@ -299,12 +295,12 @@ describe('UrlIndexer', () => {
             },
           ]);
           const data = await readAllIndexes();
-          assert.lengthOf(data, 16, 'Has 16 stored elements');
+          assert.lengthOf(data, 16, 'Has 16 stored instances');
         });
 
         it('Removes redundant parts of the index', async () => {
           const url = 'https://domain.com/api?a=b';
-          await element.index([
+          await instance.index([
             {
               url,
               id: REQUEST_ID,
@@ -312,7 +308,7 @@ describe('UrlIndexer', () => {
             },
           ]);
           const data = await readAllIndexes();
-          assert.lengthOf(data, 14, 'Has 14 stored elements');
+          assert.lengthOf(data, 14, 'Has 14 stored instances');
         });
       });
     });
@@ -333,25 +329,26 @@ describe('UrlIndexer', () => {
         });
       });
 
-      let element = /** @type UrlIndexer */ (null);
+      /** @type UrlIndexer */
+      let instance;
       beforeEach(async () => {
-        element = await basicFixture();
+        instance = new UrlIndexer(window);
       });
 
       afterEach(async () => {
-        const db = await element.openSearchStore();
+        const db = await instance.openSearchStore();
         db.close();
         await DbHelper.clearData();
       });
 
       it('reindexes saved requests', async () => {
-        await element.reindexSaved();
+        await instance.reindexSaved();
         const result = await DbHelper.readAllIndexes();
         assert.lengthOf(result, 8);
       });
 
       it('reindexes via reindex()', async () => {
-        await element.reindex('saved');
+        await instance.reindex('saved');
         const result = await DbHelper.readAllIndexes();
         assert.lengthOf(result, 8);
       });
@@ -373,25 +370,26 @@ describe('UrlIndexer', () => {
         });
       });
 
-      let element = /** @type UrlIndexer */ (null);
+      /** @type UrlIndexer */
+      let instance;
       beforeEach(async () => {
-        element = await basicFixture();
+        instance = new UrlIndexer(window);
       });
 
       afterEach(async () => {
-        const db = await element.openSearchStore();
+        const db = await instance.openSearchStore();
         db.close();
         await DbHelper.clearData();
       });
 
       it('reindexes history requests', async () => {
-        await element.reindexHistory();
+        await instance.reindexHistory();
         const result = await DbHelper.readAllIndexes();
         assert.lengthOf(result, 8);
       });
 
       it('reindexes via reindex()', async () => {
-        await element.reindex('history');
+        await instance.reindex('history');
         const result = await DbHelper.readAllIndexes();
         assert.lengthOf(result, 8);
       });
@@ -399,13 +397,14 @@ describe('UrlIndexer', () => {
 
     describe('reindex()', () => {
       // this tests were performed above so this only tests for error
-      let element = /** @type UrlIndexer */ (null);
+      /** @type UrlIndexer */
+      let instance;
       beforeEach(async () => {
-        element = await basicFixture();
+        instance = new UrlIndexer(window);
       });
 
       afterEach(async () => {
-        const db = await element.openSearchStore();
+        const db = await instance.openSearchStore();
         db.close();
         await DbHelper.clearData();
       });
@@ -413,7 +412,7 @@ describe('UrlIndexer', () => {
       it('rejects when unknown type', async () => {
         let message;
         try {
-          await element.reindex('other');
+          await instance.reindex('other');
         } catch (e) {
           message = e.message;
         }

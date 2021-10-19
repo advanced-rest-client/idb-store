@@ -1,7 +1,7 @@
 import { assert } from '@open-wc/testing';
-import { DataGenerator } from '@advanced-rest-client/arc-data-generator';
-// import { DataTestHelper } from './DataTestHelper.js';
+import { ArcMock } from '@advanced-rest-client/arc-mock';
 import { ImportFactory, transformKeys } from '../../src/lib/ImportFactory.js';
+import { MockedStore } from '../../index.js';
 
 /* global PouchDB */
 
@@ -15,7 +15,8 @@ import { ImportFactory, transformKeys } from '../../src/lib/ImportFactory.js';
 /** @typedef {import('@advanced-rest-client/events').Variable.ARCVariable} ARCVariable */
 
 describe('ImportDataStore', () => {
-  const generator = new DataGenerator();
+  const generator = new ArcMock();
+  const store = new MockedStore();
 
   describe('transformKeys()', () => {
     it('deletes "kind" property', () => {
@@ -44,11 +45,11 @@ describe('ImportDataStore', () => {
 
   describe('#importRequests()', () => {
     afterEach(async () => {
-      await generator.destroySavedRequestData();
+      await store.destroySaved();
     });
 
     function genExportItem() {
-      const request = /** @type ARCSavedRequest */ (generator.generateSavedItem());
+      const request = /** @type ARCSavedRequest */ (generator.http.saved());
       const exportItem = { ...request, kind: 'ARC#HttpRequest', key: request._id };
       delete exportItem._id;
       return exportItem;
@@ -56,23 +57,23 @@ describe('ImportDataStore', () => {
 
     it('stores the requests data', async () => {
       const item = genExportItem();
-      const store = new ImportFactory();
-      const result = await store.importRequests([item]);
+      const factory = new ImportFactory();
+      const result = await factory.importRequests([item]);
       assert.isUndefined(result, 'Has no error messages');
-      const stored = await generator.getDatastoreRequestData();
+      const stored = await store.getDatastoreRequestData();
       assert.lengthOf(stored, 1, 'has the request in the store');
       assert.equal(stored[0]._id, item.key, 'request has the id');
     });
 
     it('sets "savedIndexes"', async () => {
       const item = genExportItem();
-      const store = new ImportFactory();
-      await store.importRequests([item]);
-      assert.lengthOf(store.savedIndexes, 1);
+      const result = new ImportFactory();
+      await result.importRequests([item]);
+      assert.lengthOf(result.savedIndexes, 1);
     });
 
     it('handles conflicts', async () => {
-      const request = /** @type ARCSavedRequest */ (generator.generateSavedItem());
+      const request = /** @type ARCSavedRequest */ (generator.http.saved());
       const exportItem = { ...request, kind: 'ARC#HttpRequest', key: request._id };
       delete exportItem._id;
       const db = new PouchDB('saved-requests');
@@ -81,20 +82,20 @@ describe('ImportDataStore', () => {
       request._rev = rev;
       await db.put(request);
 
-      const store = new ImportFactory();
-      await store.importRequests([exportItem]);
-      const stored = await generator.getDatastoreRequestData();
+      const result = new ImportFactory();
+      await result.importRequests([exportItem]);
+      const stored = await store.getDatastoreRequestData();
       assert.notEqual(stored[0].name, 'test-item', 'has export request name');
     });
   });
 
   describe('#importHistory()', () => {
     afterEach(async () => {
-      await generator.destroyHistoryData();
+      await store.destroyHistory();
     });
 
     function genExportItem() {
-      const request = /** @type ARCHistoryRequest */ (generator.generateHistoryObject());
+      const request = generator.http.history();
       const exportItem = { ...request, kind: 'ARC#HistoryData', key: request._id };
       delete exportItem._id;
       return exportItem;
@@ -102,23 +103,23 @@ describe('ImportDataStore', () => {
 
     it('stores the requests data', async () => {
       const item = genExportItem();
-      const store = new ImportFactory();
-      const result = await store.importHistory([item]);
+      const factory = new ImportFactory();
+      const result = await factory.importHistory([item]);
       assert.isUndefined(result, 'Has no error messages');
-      const stored = await generator.getDatastoreHistoryData();
+      const stored = await store.getDatastoreHistoryData();
       assert.lengthOf(stored, 1, 'has the request in the store');
       assert.equal(stored[0]._id, item.key, 'request has the id');
     });
 
     it('sets "historyIndexes"', async () => {
       const item = genExportItem();
-      const store = new ImportFactory();
-      await store.importHistory([item]);
-      assert.lengthOf(store.historyIndexes, 1);
+      const factory = new ImportFactory();
+      await factory.importHistory([item]);
+      assert.lengthOf(factory.historyIndexes, 1);
     });
 
     it('handles conflicts', async () => {
-      const request = /** @type ARCHistoryRequest */ (generator.generateHistoryObject());
+      const request = generator.http.history();
       const exportItem = { ...request, kind: 'ARC#HistoryData', key: request._id };
       delete exportItem._id;
       const db = new PouchDB('history-requests');
@@ -127,20 +128,20 @@ describe('ImportDataStore', () => {
       request._rev = rev;
       await db.put(request);
 
-      const store = new ImportFactory();
-      await store.importHistory([exportItem]);
-      const stored = await generator.getDatastoreHistoryData();
+      const factory = new ImportFactory();
+      await factory.importHistory([exportItem]);
+      const stored = await store.getDatastoreHistoryData();
       assert.notEqual(stored[0].url, 'test-item', 'has export value');
     });
   });
 
   describe('#importProjects()', () => {
     afterEach(async () => {
-      await generator.destroySavedRequestData();
+      await store.destroySaved();
     });
 
     function genExportItem() {
-      const item = /** @type ARCProject */ (generator.generateProjects()[0]);
+      const item = generator.http.project();
       const exportItem = { ...item, kind: 'ARC#ProjectData', key: item._id };
       delete exportItem._id;
       return exportItem;
@@ -148,16 +149,16 @@ describe('ImportDataStore', () => {
 
     it('stores the data', async () => {
       const item = genExportItem();
-      const store = new ImportFactory();
-      const result = await store.importProjects([item]);
+      const factory = new ImportFactory();
+      const result = await factory.importProjects([item]);
       assert.isUndefined(result, 'Has no error messages');
-      const stored = await generator.getDatastoreProjectsData();
+      const stored = await store.getDatastoreProjectsData();
       assert.lengthOf(stored, 1, 'has the data in the store');
       assert.equal(stored[0]._id, item.key, 'object has the id');
     });
 
     it('handles conflicts', async () => {
-      const item = /** @type ARCProject */ (generator.generateProjects()[0]);
+      const item = generator.http.project();
       const exportItem = { ...item, kind: 'ARC#ProjectData', key: item._id };
       delete exportItem._id;
       const db = new PouchDB('legacy-projects');
@@ -166,20 +167,20 @@ describe('ImportDataStore', () => {
       item._rev = rev;
       await db.put(item);
 
-      const store = new ImportFactory();
-      await store.importProjects([exportItem]);
-      const stored = await generator.getDatastoreProjectsData();
+      const factory = new ImportFactory();
+      await factory.importProjects([exportItem]);
+      const stored = await store.getDatastoreProjectsData();
       assert.notEqual(stored[0].name, 'test-item', 'has export request name');
     });
   });
 
   describe('#importWebsocketUrls()', () => {
     afterEach(async () => {
-      await generator.destroyWebsocketsData();
+      await store.destroyWebsockets();
     });
 
     function genExportItem() {
-      const item = /** @type ARCWebsocketUrlHistory */ (generator.generateUrlObject());
+      const item = generator.urls.url();
       const exportItem = { ...item, kind: 'ARC#WebsocketHistoryData', key: item._id };
       delete exportItem._id;
       return exportItem;
@@ -187,16 +188,16 @@ describe('ImportDataStore', () => {
 
     it('stores the data', async () => {
       const item = genExportItem();
-      const store = new ImportFactory();
-      const result = await store.importWebsocketUrls([item]);
+      const factory = new ImportFactory();
+      const result = await factory.importWebsocketUrls([item]);
       assert.isUndefined(result, 'Has no error messages');
-      const stored = await generator.getDatastoreWebsocketsData();
+      const stored = await store.getDatastoreWebsocketsData();
       assert.lengthOf(stored, 1, 'has the data in the store');
       assert.equal(stored[0]._id, item.key, 'object has the id');
     });
 
     it('handles conflicts', async () => {
-      const item = /** @type ARCWebsocketUrlHistory */ (generator.generateUrlObject());
+      const item = generator.urls.url();
       const exportItem = { ...item, kind: 'ARC#WebsocketHistoryData', key: item._id };
       delete exportItem._id;
       const db = new PouchDB('websocket-url-history');
@@ -205,21 +206,21 @@ describe('ImportDataStore', () => {
       item._rev = rev;
       await db.put(item);
 
-      const store = new ImportFactory();
-      await store.importWebsocketUrls([exportItem]);
+      const factory = new ImportFactory();
+      await factory.importWebsocketUrls([exportItem]);
 
-      const stored = await generator.getDatastoreWebsocketsData();
+      const stored = await store.getDatastoreWebsocketsData();
       assert.notEqual(stored[0].url, 'test-item', 'has export request name');
     });
   });
 
   describe('#importUrls()', () => {
     afterEach(async () => {
-      await generator.destroyUrlData();
+      await store.destroyUrlHistory();
     });
 
     function genExportItem() {
-      const item = /** @type ARCUrlHistory */ (generator.generateUrlObject());
+      const item = generator.urls.url();
       const exportItem = { ...item, kind: 'ARC#UrlHistoryData', key: item._id };
       delete exportItem._id;
       return exportItem;
@@ -227,16 +228,16 @@ describe('ImportDataStore', () => {
 
     it('stores the data', async () => {
       const item = genExportItem();
-      const store = new ImportFactory();
-      const result = await store.importUrls([item]);
+      const factory = new ImportFactory();
+      const result = await factory.importUrls([item]);
       assert.isUndefined(result, 'Has no error messages');
-      const stored = await generator.getDatastoreUrlsData();
+      const stored = await store.getDatastoreUrlsData();
       assert.lengthOf(stored, 1, 'has the data in the store');
       assert.equal(stored[0]._id, item.key, 'object has the id');
     });
 
     it('handles conflicts', async () => {
-      const item = /** @type ARCUrlHistory */ (generator.generateUrlObject());
+      const item = generator.urls.url();
       const exportItem = { ...item, kind: 'ARC#UrlHistoryData', key: item._id };
       delete exportItem._id;
       const db = new PouchDB('url-history');
@@ -245,21 +246,21 @@ describe('ImportDataStore', () => {
       item._rev = rev;
       await db.put(item);
 
-      const store = new ImportFactory();
-      await store.importUrls([exportItem]);
+      const factory = new ImportFactory();
+      await factory.importUrls([exportItem]);
 
-      const stored = await generator.getDatastoreUrlsData();
+      const stored = await store.getDatastoreUrlsData();
       assert.notEqual(stored[0].url, 'test-item', 'has export value');
     });
   });
 
   describe('#importAuthData()', () => {
     afterEach(async () => {
-      await generator.destroyAuthData();
+      await store.destroyBasicAuth();
     });
 
     function genExportItem() {
-      const item = /** @type ARCAuthData */ (generator.generateBasicAuthObject());
+      const item = generator.authorization.basic();
       const exportItem = { ...item, kind: 'ARC#AuthData', key: item._id };
       delete exportItem._id;
       return exportItem;
@@ -267,16 +268,16 @@ describe('ImportDataStore', () => {
 
     it('stores the data', async () => {
       const item = genExportItem();
-      const store = new ImportFactory();
-      const result = await store.importAuthData([item]);
+      const factory = new ImportFactory();
+      const result = await factory.importAuthData([item]);
       assert.isUndefined(result, 'Has no error messages');
-      const stored = await generator.getDatastoreAuthData();
+      const stored = await store.getDatastoreAuthData();
       assert.lengthOf(stored, 1, 'has the data in the store');
       assert.equal(stored[0]._id, item.key, 'object has the id');
     });
 
     it('handles conflicts', async () => {
-      const item = /** @type ARCAuthData */ (generator.generateBasicAuthObject());
+      const item = generator.authorization.basic();
       const exportItem = { ...item, kind: 'ARC#AuthData', key: item._id };
       delete exportItem._id;
       const db = new PouchDB('auth-data');
@@ -285,21 +286,21 @@ describe('ImportDataStore', () => {
       item._rev = rev;
       await db.put(item);
 
-      const store = new ImportFactory();
-      await store.importAuthData([exportItem]);
+      const factory = new ImportFactory();
+      await factory.importAuthData([exportItem]);
 
-      const stored = await generator.getDatastoreAuthData();
+      const stored = await store.getDatastoreAuthData();
       assert.notEqual(stored[0].username, 'test-item', 'has export value');
     });
   });
 
   describe('#importHostRules()', () => {
     afterEach(async () => {
-      await generator.destroyHostRulesData();
+      await store.destroyHostRules();
     });
 
     function genExportItem() {
-      const item = /** @type ARCHostRule */ (generator.generateHostRuleObject());
+      const item = generator.hostRules.rule();
       const exportItem = { ...item, kind: 'ARC#HostRule', key: item._id };
       delete exportItem._id;
       return exportItem;
@@ -307,16 +308,16 @@ describe('ImportDataStore', () => {
 
     it('stores the data', async () => {
       const item = genExportItem();
-      const store = new ImportFactory();
-      const result = await store.importHostRules([item]);
+      const factory = new ImportFactory();
+      const result = await factory.importHostRules([item]);
       assert.isUndefined(result, 'Has no error messages');
-      const stored = await generator.getDatastoreHostRulesData();
+      const stored = await store.getDatastoreHostRulesData();
       assert.lengthOf(stored, 1, 'has the data in the store');
       assert.equal(stored[0]._id, item.key, 'object has the id');
     });
 
     it('handles conflicts', async () => {
-      const item = /** @type ARCHostRule */ (generator.generateHostRuleObject());
+      const item = generator.hostRules.rule();
       const exportItem = { ...item, kind: 'ARC#HostRule', key: item._id };
       delete exportItem._id;
       const db = new PouchDB('host-rules');
@@ -325,21 +326,21 @@ describe('ImportDataStore', () => {
       item._rev = rev;
       await db.put(item);
 
-      const store = new ImportFactory();
-      await store.importHostRules([exportItem]);
+      const factory = new ImportFactory();
+      await factory.importHostRules([exportItem]);
 
-      const stored = await generator.getDatastoreHostRulesData();
+      const stored = await store.getDatastoreHostRulesData();
       assert.notEqual(stored[0].from, 'test-item', 'has export value');
     });
   });
 
   describe('#importVariables()', () => {
     afterEach(async () => {
-      await generator.destroyVariablesData();
+      await store.destroyVariables();
     });
 
     function genExportItem() {
-      const item = /** @type ARCVariable */ (generator.generateVariableObject());
+      const item = generator.variables.variable();
       const exportItem = { ...item, kind: 'ARC#Variable', key: item._id };
       delete exportItem._id;
       return exportItem;
@@ -347,16 +348,16 @@ describe('ImportDataStore', () => {
 
     it('stores the data', async () => {
       const item = genExportItem();
-      const store = new ImportFactory();
-      const result = await store.importVariables([item]);
+      const factory = new ImportFactory();
+      const result = await factory.importVariables([item]);
       assert.isUndefined(result, 'Has no error messages');
-      const stored = await generator.getDatastoreVariablesData();
+      const stored = await store.getDatastoreVariablesData();
       assert.lengthOf(stored, 1, 'has the data in the store');
       assert.equal(stored[0]._id, item.key, 'object has the id');
     });
 
     it('handles conflicts', async () => {
-      const item = /** @type ARCVariable */ (generator.generateVariableObject());
+      const item = generator.variables.variable();
       const exportItem = { ...item, kind: 'ARC#Variable', key: item._id };
       delete exportItem._id;
       const db = new PouchDB('variables');
@@ -365,10 +366,10 @@ describe('ImportDataStore', () => {
       item._rev = rev;
       await db.put(item);
 
-      const store = new ImportFactory();
-      await store.importVariables([exportItem]);
+      const factory = new ImportFactory();
+      await factory.importVariables([exportItem]);
 
-      const stored = await generator.getDatastoreVariablesData();
+      const stored = await store.getDatastoreVariablesData();
       assert.notEqual(stored[0].value, 'test-item', 'has export value');
     });
   });

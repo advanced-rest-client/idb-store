@@ -1,17 +1,16 @@
-import 'pouchdb/dist/pouchdb.js';
 import { assert } from '@open-wc/testing';
 import sinon from 'sinon';
-import { Store } from '../../index.js';
+import { MockedStore } from '../../index.js';
 
 /* global PouchDB */
 
-describe('Store', () => {
+describe('MockedStore', () => {
   describe('insertSavedIfNotExists()', () => {
-    /** @type Store */
+    /** @type MockedStore */
     let store;
 
     before(() => { 
-      store = new Store({ store: PouchDB }); 
+      store = new MockedStore(); 
     });
 
     beforeEach(async () => {
@@ -61,11 +60,11 @@ describe('Store', () => {
   });
 
   describe('insertHistoryIfNotExists()', () => {
-    /** @type Store */
+    /** @type MockedStore */
     let store;
 
     before(() => { 
-      store = new Store({ store: PouchDB }); 
+      store = new MockedStore(); 
     });
 
     beforeEach(async () => {
@@ -99,11 +98,11 @@ describe('Store', () => {
   });
 
   describe('insertSaved()', () => {
-    /** @type Store */
+    /** @type MockedStore */
     let store;
 
     before(() => { 
-      store = new Store({ store: PouchDB }); 
+      store = new MockedStore(); 
     });
 
     beforeEach(async () => {
@@ -137,11 +136,11 @@ describe('Store', () => {
   });
 
   describe('insertHistory()', () => {
-    /** @type Store */
+    /** @type MockedStore */
     let store;
 
     before(() => { 
-      store = new Store({ store: PouchDB }); 
+      store = new MockedStore(); 
     });
 
     beforeEach(async () => {
@@ -168,11 +167,11 @@ describe('Store', () => {
   });
 
   describe('insertProjects()', () => {
-    /** @type Store */
+    /** @type MockedStore */
     let store;
 
     before(() => { 
-      store = new Store({ store: PouchDB }); 
+      store = new MockedStore(); 
     });
 
     beforeEach(async () => {
@@ -199,10 +198,10 @@ describe('Store', () => {
   });
 
   describe('destroySaved()', () => {
-    /** @type Store */
+    /** @type MockedStore */
     let store;
 
-    before(() => { store = new Store({ store: PouchDB }) });
+    before(() => { store = new MockedStore(); });
 
     beforeEach(async () => {
       await store.insertSaved();
@@ -217,10 +216,10 @@ describe('Store', () => {
   });
 
   describe('destroyHistory()', () => {
-    /** @type Store */
+    /** @type MockedStore */
     let store;
 
-    before(() => { store = new Store({ store: PouchDB }) });
+    before(() => { store = new MockedStore(); });
     
     beforeEach(async () => {
       await store.insertHistory();
@@ -235,10 +234,10 @@ describe('Store', () => {
   });
 
   describe('clearLegacyProjects()', () => {
-    /** @type Store */
+    /** @type MockedStore */
     let store;
 
-    before(() => { store = new Store({ store: PouchDB }) });
+    before(() => { store = new MockedStore(); });
     
     beforeEach(async () => {
       await store.insertProjects();
@@ -253,10 +252,10 @@ describe('Store', () => {
   });
 
   describe('insertWebsockets()', () => {
-    /** @type Store */
+    /** @type MockedStore */
     let store;
 
-    before(() => { store = new Store({ store: PouchDB }) });
+    before(() => { store = new MockedStore(); });
 
     beforeEach(async () => {
       await store.destroyWebsockets();
@@ -282,10 +281,10 @@ describe('Store', () => {
   });
 
   describe('insertUrlHistory()', () => {
-    /** @type Store */
+    /** @type MockedStore */
     let store;
 
-    before(() => { store = new Store({ store: PouchDB }) });
+    before(() => { store = new MockedStore(); });
 
     beforeEach(async () => {
       await store.destroyUrlHistory();
@@ -311,10 +310,10 @@ describe('Store', () => {
   });
 
   describe('destroyWebsockets()', () => {
-    /** @type Store */
+    /** @type MockedStore */
     let store;
 
-    before(() => { store = new Store({ store: PouchDB }) });
+    before(() => { store = new MockedStore(); });
     
     beforeEach(async () => {
       await store.insertWebsockets();
@@ -329,10 +328,10 @@ describe('Store', () => {
   });
 
   describe('destroyUrlHistory()', () => {
-    /** @type Store */
+    /** @type MockedStore */
     let store;
 
-    before(() => { store = new Store({ store: PouchDB }) });
+    before(() => { store = new MockedStore(); });
     
     beforeEach(async () => {
       await store.insertUrlHistory();
@@ -347,10 +346,10 @@ describe('Store', () => {
   });
 
   describe('insertVariables()', () => {
-    /** @type Store */
+    /** @type MockedStore */
     let store;
 
-    before(() => { store = new Store({ store: PouchDB }) });
+    before(() => { store = new MockedStore(); });
 
     beforeEach(async () => {
       await store.destroyVariables();
@@ -376,10 +375,10 @@ describe('Store', () => {
   });
 
   describe('insertVariablesAndEnvironments()', () => {
-    /** @type Store */
+    /** @type MockedStore */
     let store;
 
-    before(() => { store = new Store({ store: PouchDB }) });
+    before(() => { store = new MockedStore(); });
 
     beforeEach(async () => {
       await store.destroyVariables();
@@ -413,10 +412,10 @@ describe('Store', () => {
   });
 
   describe('destroyVariablesData()', () => {
-    /** @type Store */
+    /** @type MockedStore */
     let store;
 
-    before(() => { store = new Store({ store: PouchDB }) });
+    before(() => { store = new MockedStore(); });
     
     beforeEach(async () => {
       await store.insertVariables();
@@ -438,10 +437,10 @@ describe('Store', () => {
   });
 
   describe('insertCookies()', () => {
-    /** @type Store */
+    /** @type MockedStore */
     let store;
 
-    before(() => { store = new Store({ store: PouchDB }) });
+    before(() => { store = new MockedStore(); });
 
     beforeEach(async () => {
       await store.destroyCookies();
@@ -467,10 +466,10 @@ describe('Store', () => {
   });
 
   describe('destroyCookies()', () => {
-    /** @type Store */
+    /** @type MockedStore */
     let store;
 
-    before(() => { store = new Store({ store: PouchDB }) });
+    before(() => { store = new MockedStore(); });
     
     beforeEach(async () => {
       await store.insertCookies();
@@ -485,10 +484,10 @@ describe('Store', () => {
   });
 
   describe('insertBasicAuth()', () => {
-    /** @type Store */
+    /** @type MockedStore */
     let store;
 
-    before(() => { store = new Store({ store: PouchDB }) });
+    before(() => { store = new MockedStore(); });
 
     beforeEach(async () => {
       await store.destroyBasicAuth();
@@ -514,10 +513,10 @@ describe('Store', () => {
   });
 
   describe('destroyBasicAuth()', () => {
-    /** @type Store */
+    /** @type MockedStore */
     let store;
 
-    before(() => { store = new Store({ store: PouchDB }) });
+    before(() => { store = new MockedStore(); });
     
     beforeEach(async () => {
       await store.insertBasicAuth();
@@ -532,10 +531,10 @@ describe('Store', () => {
   });
 
   describe('insertHostRules()', () => {
-    /** @type Store */
+    /** @type MockedStore */
     let store;
 
-    before(() => { store = new Store({ store: PouchDB }) });
+    before(() => { store = new MockedStore(); });
 
     beforeEach(async () => {
       await store.destroyHostRules();
@@ -561,10 +560,10 @@ describe('Store', () => {
   });
 
   describe('destroyHostRules()', () => {
-    /** @type Store */
+    /** @type MockedStore */
     let store;
 
-    before(() => { store = new Store({ store: PouchDB }) });
+    before(() => { store = new MockedStore(); });
     
     beforeEach(async () => {
       await store.insertHostRules();
@@ -579,10 +578,10 @@ describe('Store', () => {
   });
 
   describe('insertApis()', () => {
-    /** @type Store */
+    /** @type MockedStore */
     let store;
 
-    before(() => { store = new Store({ store: PouchDB }) });
+    before(() => { store = new MockedStore(); });
 
     beforeEach(async () => {
       await store.destroyApisAll();
@@ -614,10 +613,10 @@ describe('Store', () => {
   });
 
   describe('destroyApiIndexes()', () => {
-    /** @type Store */
+    /** @type MockedStore */
     let store;
 
-    before(() => { store = new Store({ store: PouchDB }) });
+    before(() => { store = new MockedStore(); });
     
     beforeEach(async () => {
       const db = new PouchDB('api-index');
@@ -633,10 +632,10 @@ describe('Store', () => {
   });
 
   describe('destroyApiData()', () => {
-    /** @type Store */
+    /** @type MockedStore */
     let store;
 
-    before(() => { store = new Store({ store: PouchDB }) });
+    before(() => { store = new MockedStore(); });
     
     beforeEach(async () => {
       const db = new PouchDB('api-data');
@@ -652,10 +651,10 @@ describe('Store', () => {
   });
 
   describe('insertCertificates()', () => {
-    /** @type Store */
+    /** @type MockedStore */
     let store;
 
-    before(() => { store = new Store({ store: PouchDB }) });
+    before(() => { store = new MockedStore(); });
 
     beforeEach(async () => {
       await store.destroyClientCertificates();
@@ -680,10 +679,10 @@ describe('Store', () => {
   });
 
   describe('destroyClientCertificates()', () => {
-    /** @type Store */
+    /** @type MockedStore */
     let store;
 
-    before(() => { store = new Store({ store: PouchDB }) });
+    before(() => { store = new MockedStore(); });
     
     beforeEach(async () => {
       const db = new PouchDB('client-certificates');
@@ -699,10 +698,10 @@ describe('Store', () => {
   });
 
   describe('destroyAll()', () => {
-    /** @type Store */
+    /** @type MockedStore */
     let store;
     const spies = [];
-    const fns = /** @type {(keyof Store)[]} */ ([
+    const fns = /** @type {(keyof MockedStore)[]} */ ([
       'destroySaved',
       'destroyHistory',
       'destroyWebsockets',
@@ -717,7 +716,7 @@ describe('Store', () => {
     ]);
 
     before(async () => {
-      store = new Store({ store: PouchDB });
+      store = new MockedStore();;
       fns.forEach((fn) => {
         const spy = sinon.spy(store, fn);
         spies.push(spy);
@@ -737,10 +736,10 @@ describe('Store', () => {
   });
 
   describe('clone()', () => {
-    /** @type Store */
+    /** @type MockedStore */
     let store;
 
-    before(() => { store = new Store({ store: PouchDB }) });
+    before(() => { store = new MockedStore(); });
     
 
     it('creates a copy', () => {
@@ -771,11 +770,11 @@ describe('Store', () => {
   });
 
   describe('Data getters', () => {
-    /** @type Store */
+    /** @type MockedStore */
     let store;
 
     before(async () => {
-      store = new Store({ store: PouchDB });
+      store = new MockedStore();;
       await store.destroyAll();
     });
 

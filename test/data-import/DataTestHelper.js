@@ -2,12 +2,10 @@
 /* eslint-disable no-prototype-builtins */
 
 import { assert } from '@open-wc/testing';
-import 'chance/dist/chance.min.js';
 import 'pouchdb/dist/pouchdb.js';
-/* global Chance */
-// @ts-ignore
-const chance = new Chance();
+import { ArcMock } from '@advanced-rest-client/arc-mock';
 
+const generator = new ArcMock();
 
 export const DataTestHelper = {};
 DataTestHelper.getFile = async (file) => {
@@ -65,6 +63,6 @@ DataTestHelper.assertProjectObject = (project) => {
 };
 
 DataTestHelper.updateRequestRandom = (obj) => {
-  obj.name = chance.word();
+  obj.name = generator.lorem.word();
   return DataTestHelper.updateObject('saved-requests', obj);
 };

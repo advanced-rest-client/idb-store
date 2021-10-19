@@ -1,5 +1,5 @@
 import { assert } from '@open-wc/testing';
-import { DataGenerator } from '@advanced-rest-client/arc-data-generator';
+import { ArcMock } from '@advanced-rest-client/arc-mock';
 import {
   getEntry,
   fetchEntriesPage,
@@ -7,13 +7,15 @@ import {
   readClientCertificateIfNeeded,
   processRequestsArray,
 } from '../../src/lib/DbUtils.js';
+import { MockedStore } from '../../index.js'
 
 /** @typedef {import('@advanced-rest-client/events').ArcRequest.ARCSavedRequest} ARCSavedRequest */
 
 /* global PouchDB */
 
 describe('DbUtils', () => {
-  const generator = new DataGenerator();
+  const generator = new ArcMock();
+  const store = new MockedStore();
 
   describe('getEntry()', () => {
     let db = /** @type PouchDB.Database */ (null);
@@ -45,9 +47,7 @@ describe('DbUtils', () => {
     const dbName = 'url-history';
     let created;
     before(async () => {
-      created = await generator.insertUrlHistoryData({
-        size: 50,
-      });
+      created = await store.urls.urls(50);
       db = new PouchDB(dbName);
     });
 
@@ -86,9 +86,7 @@ describe('DbUtils', () => {
     let db = /** @type PouchDB.Database */ (null);
     const dbName = 'url-history';
     before(async () => {
-      await generator.insertUrlHistoryData({
-        size: 50,
-      });
+      await store.urls.urls(50);
       db = new PouchDB(dbName);
     });
 
@@ -113,13 +111,11 @@ describe('DbUtils', () => {
   describe('readClientCertificateIfNeeded()', () => {
     let created;
     before(async () => {
-      created = await generator.insertCertificatesData({
-        size: 5,
-      });
+      created = await store.certificates.clientCertificates(5);
     });
 
     after(async () => {
-      await generator.destroyClientCertificates();
+      await store.destroyClientCertificates();
     });
 
     it('returns null when no id', async () => {
@@ -147,19 +143,15 @@ describe('DbUtils', () => {
   describe('processRequestsArray()', () => {
     let created;
     before(async () => {
-      created = await generator.insertCertificatesData({
-        size: 5,
-      });
+      created = await store.certificates.clientCertificates(5);
     });
 
     after(async () => {
-      await generator.destroyClientCertificates();
+      await store.destroyClientCertificates();
     });
 
     it('returns certificates for the legacy system', async () => {
-      const { requests } = generator.generateSavedRequestData({
-        requestsSize: 3,
-      });
+      const { requests } = generator.http.savedData(3);
       // @ts-ignore
       requests[0].authType = 'client certificate';
       // @ts-ignore
@@ -174,14 +166,13 @@ describe('DbUtils', () => {
     });
 
     it('returns certificates the are not already defined', async () => {
-      const requests = /** @type ARCSavedRequest[] */ (generator.generateSavedRequestData({
-        requestsSize: 3,
-      }).requests);
+      const { requests } = generator.http.savedData(3);
 
       requests[0].authorization = [
         {
           type: 'client certificate',
           enabled: true,
+          valid: true,
           config: {
             id: created[0]._id,
           }
@@ -191,6 +182,7 @@ describe('DbUtils', () => {
         {
           type: 'basic',
           enabled: true,
+          valid: true,
           config: {
             username: 'test',
           }
@@ -203,14 +195,13 @@ describe('DbUtils', () => {
     });
 
     it('ignores when certificate in already defined', async () => {
-      const requests = /** @type ARCSavedRequest[] */ (generator.generateSavedRequestData({
-        requestsSize: 3,
-      }).requests);
+      const { requests } = generator.http.savedData(3);
 
       requests[0].authorization = [
         {
           type: 'client certificate',
           enabled: true,
+          valid: true,
           config: {
             id: created[0]._id,
           }
@@ -220,6 +211,7 @@ describe('DbUtils', () => {
         {
           type: 'basic',
           enabled: true,
+          valid: true,
           config: {
             username: 'test',
           }

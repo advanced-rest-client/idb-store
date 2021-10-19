@@ -1,36 +1,38 @@
 import { fixture, assert } from '@open-wc/testing';
 import sinon from 'sinon';
-import { DataGenerator } from '@advanced-rest-client/arc-data-generator';
-import 'chance/dist/chance.min.js';
+import { ArcMock } from '@advanced-rest-client/arc-mock';
 import { ArcModelEventTypes, ArcModelEvents } from '@advanced-rest-client/events';
-import '../../rest-api-model.js';
+import { MockedStore, RestApiModel } from '../../index.js';
 
 /* eslint-disable prefer-destructuring */
 
-/** @typedef {import('../../src/RestApiModel').RestApiModel} RestApiModel */
 /** @typedef {import('@advanced-rest-client/events').RestApi.ARCRestApiIndex} ARCRestApiIndex */
 /** @typedef {import('@advanced-rest-client/events').RestApi.ARCRestApi} ARCRestApi */
 
 describe('RestApiModel', () => {
-  const generator = new DataGenerator();
-  /**
-   * @return {Promise<RestApiModel>}
-   */
-  async function basicFixture() {
-    return fixture('<rest-api-model></rest-api-model>');
+  const store = new MockedStore();
+  const generator = new ArcMock();
+  
+  async function etFixture() {
+    return fixture(`<div></div>`);
   }
 
   describe('Events API', () => {
     describe(`${ArcModelEventTypes.RestApi.read} event`, () => {
       let created;
-      let element = /** @type RestApiModel */ (null);
+      /** @type RestApiModel */
+      let instance;
+      /** @type Element */
+      let et;
       beforeEach(async () => {
-        element = await basicFixture();
-        const entity = /** @type ARCRestApiIndex */ (generator.generateApiIndex());
-        created = await element.indexDb.put(entity);
+        et = await etFixture();
+        instance = new RestApiModel();
+        instance.listen(et);
+        const entity = generator.restApi.apiIndex();
+        created = await instance.indexDb.put(entity);
       });
 
-      afterEach(async () => generator.destroyAllApiData());
+      afterEach(async () => store.destroyApisAll());
 
       it('returns index data with the id', async () => {
         const doc = await ArcModelEvents.RestApi.read(document.body, created.id);
@@ -59,13 +61,18 @@ describe('RestApiModel', () => {
     });
 
     describe(`${ArcModelEventTypes.RestApi.update} event`, () => {
-      after(() => generator.destroyAllApiData());
+      after(() => store.destroyApisAll());
 
-      let element = /** @type RestApiModel */ (null);
+      /** @type RestApiModel */
+      let instance;
+      /** @type Element */
+      let et;
       let entity = /** @type ARCRestApiIndex */ (null);
       beforeEach(async () => {
-        element = await basicFixture();
-        entity = /** @type ARCRestApiIndex */ (generator.generateApiIndex());
+        et = await etFixture();
+        instance = new RestApiModel();
+        instance.listen(et);
+        entity = generator.restApi.apiIndex();
       });
 
       it('returns the changelog', async () => {
@@ -79,7 +86,7 @@ describe('RestApiModel', () => {
 
       it('creates new object in the data store', async () => {
         const record = await ArcModelEvents.RestApi.update(document.body, entity);
-        const result = await element.indexDb.get(record.id);
+        const result = await instance.indexDb.get(record.id);
         assert.typeOf(result, 'object');
       });
 
@@ -94,7 +101,7 @@ describe('RestApiModel', () => {
 
       it('dispatches change event', async () => {
         const spy = sinon.spy();
-        element.addEventListener(ArcModelEventTypes.RestApi.State.update, spy);
+        instance.addEventListener(ArcModelEventTypes.RestApi.State.update, spy);
         await ArcModelEvents.RestApi.update(document.body, entity);
         assert.isTrue(spy.calledOnce);
       });
@@ -115,14 +122,19 @@ describe('RestApiModel', () => {
     });
 
     describe(`${ArcModelEventTypes.RestApi.dataUpdate} event`, () => {
-      after(() => generator.destroyAllApiData());
+      after(() => store.destroyApisAll());
 
-      let element = /** @type RestApiModel */ (null);
+      /** @type RestApiModel */
+      let instance;
+      /** @type Element */
+      let et;
       let entity = /** @type ARCRestApi */ (null);;
       beforeEach(async () => {
-        element = await basicFixture();
-        const index = /** @type any */ (generator.generateApiIndex());
-        entity = /** @type ARCRestApi */ (generator.generateApiData(index)[0]);
+        et = await etFixture();
+        instance = new RestApiModel();
+        instance.listen(et);
+        const index = generator.restApi.apiIndex();
+        entity = /** @type ARCRestApi */ (generator.restApi.apiData(index)[0]);
       });
 
       it('returns the changelog', async () => {
@@ -136,7 +148,7 @@ describe('RestApiModel', () => {
 
       it('creates new object in the data store', async () => {
         const record = await ArcModelEvents.RestApi.dataUpdate(document.body, entity);
-        const result = await element.dataDb.get(record.id);
+        const result = await instance.dataDb.get(record.id);
         assert.typeOf(result, 'object');
       });
 
@@ -151,7 +163,7 @@ describe('RestApiModel', () => {
 
       it('dispatches change event', async () => {
         const spy = sinon.spy();
-        element.addEventListener(ArcModelEventTypes.RestApi.State.dataUpdate, spy);
+        instance.addEventListener(ArcModelEventTypes.RestApi.State.dataUpdate, spy);
         await ArcModelEvents.RestApi.dataUpdate(document.body, entity);
         assert.isTrue(spy.calledOnce);
       });
@@ -173,17 +185,22 @@ describe('RestApiModel', () => {
 
     describe(`${ArcModelEventTypes.RestApi.dataRead} event`, () => {
       let dataEntities = /** @type ARCRestApi[] */ (null);
-
+      /** @type RestApiModel */
+      let instance;
+      /** @type Element */
+      let et;
       beforeEach(async () => {
-        await basicFixture();
+        et = await etFixture();
+        instance = new RestApiModel();
+        instance.listen(et);
         // @ts-ignore
-        const result = await generator.insertApiData({
+        const result = await store.insertApis({
           size: 1,
         });
         dataEntities = /** @type ARCRestApi[] */ (result[1]);
       });
 
-      afterEach(() => generator.destroyAllApiData());
+      afterEach(() => store.destroyApisAll());
 
       it('reads the entity', async () => {
         const doc = await ArcModelEvents.RestApi.dataRead(document.body, dataEntities[0]._id);
@@ -212,18 +229,23 @@ describe('RestApiModel', () => {
     });
 
     describe(`${ArcModelEventTypes.RestApi.updateBulk} event`, () => {
-      let element = /** @type RestApiModel */ (null);
+      /** @type RestApiModel */
+      let instance;
+      /** @type Element */
+      let et;
       let items = /** @type ARCRestApiIndex[] */ (null);
 
       beforeEach(async () => {
-        element = await basicFixture();
+        et = await etFixture();
+        instance = new RestApiModel();
+        instance.listen(et);
         // @ts-ignore
         items = /** @type ARCRestApiIndex[] */ (generator.generateApiIndexList({
           size: 10,
         }));
       });
 
-      after(() => generator.destroyAllApiData());
+      after(() => store.destroyApisAll());
 
       it('returns the changelog for each item', async () => {
         const records = await ArcModelEvents.RestApi.updateBulk(document.body, items);
@@ -239,7 +261,7 @@ describe('RestApiModel', () => {
 
       it('dispatches change event', async () => {
         const spy = sinon.spy();
-        element.addEventListener(ArcModelEventTypes.RestApi.State.update, spy);
+        instance.addEventListener(ArcModelEventTypes.RestApi.State.update, spy);
         await ArcModelEvents.RestApi.updateBulk(document.body, items);
         assert.equal(spy.callCount, items.length);
       });
@@ -260,26 +282,30 @@ describe('RestApiModel', () => {
     });
 
     describe(`${ArcModelEventTypes.RestApi.versionDelete} event`, () => {
-      let element = /** @type RestApiModel */ (null);
+      /** @type RestApiModel */
+      let instance;
+      /** @type Element */
+      let et;
       let indexEntity = /** @type ARCRestApiIndex */ (null);
       let dataEntity = /** @type ARCRestApi */ (null);
 
       beforeEach(async () => {
-        const result = await generator.insertApiData({
-          size: 1,
+        const result = await store.insertApis(1, {
           versionSize: 5,
           order: 1,
         });
         indexEntity = /** @type ARCRestApiIndex */ (result[0][0]);
         dataEntity = /** @type ARCRestApi */ (result[1][0]);
-        element = await basicFixture();
+        et = await etFixture();
+        instance = new RestApiModel();
+        instance.listen(et);
       });
 
-      afterEach(() => generator.destroyAllApiData());
+      afterEach(() => store.destroyApisAll());
 
       it('removes a version from the index', async () => {
         await ArcModelEvents.RestApi.versionDelete(document.body, indexEntity._id, dataEntity.version);
-        const doc = await element.indexDb.get(indexEntity._id);
+        const doc = await instance.indexDb.get(indexEntity._id);
         assert.notInclude(doc.versions, dataEntity.version);
       });
 
@@ -287,7 +313,7 @@ describe('RestApiModel', () => {
         await ArcModelEvents.RestApi.versionDelete(document.body, indexEntity._id, dataEntity.version);
         let thrown = false;
         try {
-          await element.dataDb.get(`${indexEntity._id}|${dataEntity.version}`);
+          await instance.dataDb.get(`${indexEntity._id}|${dataEntity.version}`);
         } catch (e) {
           thrown = true;
         }
@@ -295,13 +321,13 @@ describe('RestApiModel', () => {
       });
 
       it('removes the index if has no more versions', async () => {
-        const doc = await element.indexDb.get(indexEntity._id);
+        const doc = await instance.indexDb.get(indexEntity._id);
         doc.versions = [dataEntity.version];
-        await element.indexDb.put(doc);
+        await instance.indexDb.put(doc);
         await ArcModelEvents.RestApi.versionDelete(document.body, indexEntity._id, dataEntity.version);
         let thrown = false;
         try {
-          await element.indexDb.get(indexEntity._id);
+          await instance.indexDb.get(indexEntity._id);
         } catch (e) {
           thrown = true;
         }
@@ -310,34 +336,34 @@ describe('RestApiModel', () => {
 
       it('dispatches index change event', async () => {
         const spy = sinon.spy();
-        element.addEventListener(ArcModelEventTypes.RestApi.State.update, spy);
+        instance.addEventListener(ArcModelEventTypes.RestApi.State.update, spy);
         await ArcModelEvents.RestApi.versionDelete(document.body, indexEntity._id, dataEntity.version);
         assert.isTrue(spy.calledOnce);
       });
 
       it('ignores when no versions', async () => {
-        const doc = await element.indexDb.get(indexEntity._id);
+        const doc = await instance.indexDb.get(indexEntity._id);
         delete doc.versions;
-        await element.indexDb.put(doc);
+        await instance.indexDb.put(doc);
         await ArcModelEvents.RestApi.versionDelete(document.body, indexEntity._id, dataEntity.version);
-        const result = await element.dataDb.get(`${indexEntity._id}|${dataEntity.version}`);
+        const result = await instance.dataDb.get(`${indexEntity._id}|${dataEntity.version}`);
         assert.ok(result);
       });
 
       it('ignores when versions does not exists', async () => {
-        const doc = await element.indexDb.get(indexEntity._id);
+        const doc = await instance.indexDb.get(indexEntity._id);
         doc.versions = ['hello'];
-        await element.indexDb.put(doc);
+        await instance.indexDb.put(doc);
         await ArcModelEvents.RestApi.versionDelete(document.body, indexEntity._id, dataEntity.version);
-        const result = await element.dataDb.get(`${indexEntity._id}|${dataEntity.version}`);
+        const result = await instance.dataDb.get(`${indexEntity._id}|${dataEntity.version}`);
         assert.ok(result);
       });
 
       it('updates "latest" property when removing latest version', async () => {
-        const doc = await element.indexDb.get(indexEntity._id);
+        const doc = await instance.indexDb.get(indexEntity._id);
         const { latest, versions } = doc;
         await ArcModelEvents.RestApi.versionDelete(document.body, indexEntity._id, latest);
-        const index = await element.indexDb.get(indexEntity._id);
+        const index = await instance.indexDb.get(indexEntity._id);
         assert.notEqual(index.latest, latest, 'latest is updated');
         assert.include(versions, index.latest, 'latest is one of the versions');
       });
@@ -359,22 +385,26 @@ describe('RestApiModel', () => {
 
     describe(`${ArcModelEventTypes.RestApi.delete} event`, () => {
       let indexEntity = /** @type ARCRestApiIndex */ (null);
-
+      /** @type RestApiModel */
+      let instance;
+      /** @type Element */
+      let et;
       beforeEach(async () => {
-        const result = await generator.insertApiData({
-          size: 1,
+        const result = await store.insertApis(1, {
           versionSize: 5,
           order: 1,
         });
         indexEntity = /** @type ARCRestApiIndex */ (result[0][0]);
-        await basicFixture();
+        et = await etFixture();
+        instance = new RestApiModel();
+        instance.listen(et);
       });
 
-      afterEach(() => generator.destroyAllApiData());
+      afterEach(() => store.destroyApisAll());
 
       it('removes index entity from the store', async () => {
         await ArcModelEvents.RestApi.delete(document.body, indexEntity._id);
-        const indexes = await generator.getDatastoreApiIndexData();
+        const indexes = await store.getDatastoreApiIndexData();
         assert.lengthOf(indexes, 0);
       });
 
@@ -401,25 +431,29 @@ describe('RestApiModel', () => {
     });
 
     describe(`${ArcModelEventTypes.RestApi.list} event`, () => {
-      let element = /** @type RestApiModel */ (null);
-
+      /** @type RestApiModel */
+      let instance;
+      /** @type Element */
+      let et;
       beforeEach(async () => {
         // @ts-ignore
-        await generator.insertApiData({
+        await store.insertApis({
           size: 30,
           versionSize: 1,
         });
-        element = await basicFixture();
+        et = await etFixture();
+        instance = new RestApiModel();
+        instance.listen(et);
       });
 
-      afterEach(() => generator.destroyAllApiData());
+      afterEach(() => store.destroyApisAll());
 
       it('returns a query result for default parameters', async () => {
         const result = await ArcModelEvents.RestApi.list(document.body);
         assert.typeOf(result, 'object', 'result is an object');
         assert.typeOf(result.nextPageToken, 'string', 'has page token');
         assert.typeOf(result.items, 'array', 'has response items');
-        assert.lengthOf(result.items, element.defaultQueryOptions.limit, 'has default limit of items');
+        assert.lengthOf(result.items, instance.defaultQueryOptions.limit, 'has default limit of items');
       });
 
       it('respects "limit" parameter', async () => {
@@ -465,45 +499,50 @@ describe('RestApiModel', () => {
     });
 
     describe(`${ArcModelEventTypes.destroy} event`, () => {
-      let element = /** @type RestApiModel */ (null);
+      /** @type RestApiModel */
+      let instance;
+      /** @type Element */
+      let et;
       beforeEach(async () => {
         // @ts-ignore
-        await generator.insertApiData({
+        await store.insertApis({
           size: 10,
           versionSize: 1,
         });
-        element = await basicFixture();
+        et = await etFixture();
+        instance = new RestApiModel();
+        instance.listen(et);
       });
 
-      afterEach(() => generator.destroyAllApiData());
+      afterEach(() => store.destroyApisAll());
 
       it('clears index data', async () => {
-        const indexBefore = await generator.getDatastoreApiIndexData();
+        const indexBefore = await store.getDatastoreApiIndexData();
         assert.lengthOf(indexBefore, 10, 'has index data');
         await ArcModelEvents.destroy(document.body, ['rest-apis']);
-        const index = await generator.getDatastoreApiIndexData();
+        const index = await store.getDatastoreApiIndexData();
         assert.lengthOf(index, 0, 'index is cleared');
       });
 
       it('clears api data store', async () => {
-        const indexBefore = await generator.getDatastoreHostApiData();
+        const indexBefore = await store.getDatastoreHostApiData();
         assert.lengthOf(indexBefore, 10, 'has api data');
         await ArcModelEvents.destroy(document.body, ['rest-apis']);
-        const index = await generator.getDatastoreHostApiData();
+        const index = await store.getDatastoreHostApiData();
         assert.lengthOf(index, 0, 'api is cleared');
       });
 
       it('clears on "all" store', async () => {
-        const indexBefore = await generator.getDatastoreHostApiData();
+        const indexBefore = await store.getDatastoreHostApiData();
         assert.lengthOf(indexBefore, 10, 'has api data');
         await ArcModelEvents.destroy(document.body, ['all']);
-        const index = await generator.getDatastoreHostApiData();
+        const index = await store.getDatastoreHostApiData();
         assert.lengthOf(index, 0, 'api is cleared');
       });
 
       it('dispatches store clear events', async () => {
         const spy = sinon.spy();
-        element.addEventListener(ArcModelEventTypes.destroyed, spy);
+        instance.addEventListener(ArcModelEventTypes.destroyed, spy);
         await ArcModelEvents.destroy(document.body, ['rest-apis']);
         assert.equal(spy.callCount, 2);
       });

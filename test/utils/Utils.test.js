@@ -1,5 +1,5 @@
 import {  assert } from '@open-wc/testing';
-import { DataGenerator } from '@advanced-rest-client/arc-data-generator';
+import { ArcMock } from '@advanced-rest-client/arc-mock';
 import {
   normalizeRequest,
   findUndeletedRevision,
@@ -10,7 +10,7 @@ import {
   normalizeProjects,
 } from '../../src/Utils.js';
 
-const generator = new DataGenerator();
+const generator = new ArcMock();
 
 /* eslint-disable prefer-destructuring */
 /* global PouchDB */
@@ -145,7 +145,7 @@ describe('Utils', () => {
     });
 
     async function getRemovedItem() {
-      const doc = /** @type ARCHistoryRequest */ (generator.generateHistoryObject());
+      const doc = generator.http.history();
       const createResult = await db.post(doc);
       doc._rev = createResult.rev;
       // @ts-ignore
@@ -188,7 +188,7 @@ describe('Utils', () => {
 
     it('ignores not deleted items', async () => {
       const doc1 = await getRemovedItem();
-      const doc2 = /** @type ARCHistoryRequest */ (generator.generateHistoryObject());
+      const doc2 = generator.http.history();
       const createResult = await db.post(doc2);
       doc2._rev = createResult.rev;
       const result = await revertDelete(db, [deleted(doc1), deleted(doc2)]);
@@ -256,42 +256,42 @@ describe('Utils', () => {
     });
 
     it('adds order property', () => {
-      const project = /** @type ARCProject */ (generator.createProjectObject());
+      const project = generator.http.project();
       delete project.order;
       const result = normalizeProjects([project]);
       assert.equal(result[0].order, 0);
     });
 
     it('respects existing order property', () => {
-      const project = /** @type ARCProject */ (generator.createProjectObject());
+      const project = generator.http.project();
       project.order = 1;
       const result = normalizeProjects([project]);
       assert.equal(result[0].order, 1);
     });
 
     it('adds requests property', () => {
-      const project = /** @type ARCProject */ (generator.createProjectObject());
+      const project = generator.http.project();
       delete project.requests;
       const result = normalizeProjects([project]);
       assert.deepEqual(result[0].requests, []);
     });
 
     it('respects existing order property', () => {
-      const project = /** @type ARCProject */ (generator.createProjectObject());
+      const project = generator.http.project();
       project.requests = ['test'];
       const result = normalizeProjects([project]);
       assert.deepEqual(result[0].requests, ['test']);
     });
 
     it('adds updated property', () => {
-      const project = /** @type ARCProject */ (generator.createProjectObject());
+      const project = generator.http.project();
       delete project.updated;
       const result = normalizeProjects([project]);
       assert.typeOf(result[0].updated, 'number');
     });
 
     it('adds created property', () => {
-      const project = /** @type ARCProject */ (generator.createProjectObject());
+      const project = generator.http.project();
       delete project.created;
       const result = normalizeProjects([project]);
       assert.typeOf(result[0].created, 'number');
@@ -299,7 +299,7 @@ describe('Utils', () => {
     });
 
     it('respects existing created property', () => {
-      const project = /** @type ARCProject */ (generator.createProjectObject());
+      const project = generator.http.project();
       project.created = 10;
       const result = normalizeProjects([project]);
       assert.equal(result[0].created, 10);

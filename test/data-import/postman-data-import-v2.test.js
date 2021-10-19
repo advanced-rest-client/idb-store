@@ -1,11 +1,11 @@
 import { assert } from '@open-wc/testing';
-import { DataGenerator } from '@advanced-rest-client/arc-data-generator';
 import { DataTestHelper } from './DataTestHelper.js';
 import { ImportNormalize } from '../../src/lib/ImportNormalize.js';
 import { ImportFactory } from '../../src/lib/ImportFactory.js';
+import { MockedStore } from '../../index.js';
 
 describe('Postman data import v2', () => {
-  const generator = new DataGenerator();
+  const store = new MockedStore();
 
   describe('Postman import to datastore - v2', () => {
     let originalData;
@@ -16,11 +16,11 @@ describe('Postman data import v2', () => {
     });
 
     after(async () => {
-      await generator.destroySavedRequestData();
+      await store.destroySaved();
     });
 
     beforeEach(async () => {
-      data = generator.clone(originalData);
+      data = store.clone(originalData);
     });
 
     it('stores the data', async () => {
@@ -29,9 +29,9 @@ describe('Postman data import v2', () => {
       const factory = new ImportFactory();
       const errors = await factory.importData(parsed);
       assert.isUndefined(errors, 'has no storing errors');
-      const requests = await generator.getDatastoreRequestData();
+      const requests = await store.getDatastoreRequestData();
       assert.lengthOf(requests, 5, 'has 5 requests');
-      const projects = await generator.getDatastoreProjectsData();
+      const projects = await store.getDatastoreProjectsData();
       assert.lengthOf(projects, 1, 'has 1 project');
     });
 
@@ -41,9 +41,9 @@ describe('Postman data import v2', () => {
       const factory = new ImportFactory();
       const errors = await factory.importData(parsed);
       assert.isUndefined(errors, 'has no storing errors');
-      const requests = await generator.getDatastoreRequestData();
+      const requests = await store.getDatastoreRequestData();
       assert.lengthOf(requests, 5, 'has 5 requests');
-      const projects = await generator.getDatastoreProjectsData();
+      const projects = await store.getDatastoreProjectsData();
       assert.lengthOf(projects, 1, 'has 1 project');
     });
   });
