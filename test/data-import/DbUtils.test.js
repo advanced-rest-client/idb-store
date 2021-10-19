@@ -47,7 +47,7 @@ describe('DbUtils', () => {
     const dbName = 'url-history';
     let created;
     before(async () => {
-      created = await store.urls.urls(50);
+      created = await store.insertUrlHistory(50);
       db = new PouchDB(dbName);
     });
 
@@ -86,7 +86,7 @@ describe('DbUtils', () => {
     let db = /** @type PouchDB.Database */ (null);
     const dbName = 'url-history';
     before(async () => {
-      await store.urls.urls(50);
+      await store.insertUrlHistory(50);
       db = new PouchDB(dbName);
     });
 
@@ -111,7 +111,7 @@ describe('DbUtils', () => {
   describe('readClientCertificateIfNeeded()', () => {
     let created;
     before(async () => {
-      created = await store.certificates.clientCertificates(5);
+      created = await store.insertCertificates(5);
     });
 
     after(async () => {
@@ -143,7 +143,7 @@ describe('DbUtils', () => {
   describe('processRequestsArray()', () => {
     let created;
     before(async () => {
-      created = await store.certificates.clientCertificates(5);
+      created = await store.insertCertificates(5);
     });
 
     after(async () => {

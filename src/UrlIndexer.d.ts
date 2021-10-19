@@ -19,7 +19,7 @@ export declare const getQueryString: symbol;
 export declare const appendQueryParams: symbol;
 export declare const storeIndexes: symbol;
 export declare const getIndexedDataAll: symbol;
-
+export const deletemodelHandler: unique symbol;
 
 declare interface IndexableRequestInternal extends Indexer.IndexableRequest {
   /**

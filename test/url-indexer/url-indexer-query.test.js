@@ -53,12 +53,14 @@ describe('UrlIndexer', () => {
 
       describe('Case search', () => {
         /** @type UrlIndexer */
-      let instance;
+        let instance;
         beforeEach(async () => {
           instance = new UrlIndexer(window);
+          instance.listen();
         });
 
         afterEach(async () => {
+          instance.unlisten();
           const db = await instance.openSearchStore();
           db.close();
         });
@@ -99,12 +101,14 @@ describe('UrlIndexer', () => {
 
       describe('Detailed search', () => {
         /** @type UrlIndexer */
-      let instance;
+        let instance;
         beforeEach(async () => {
           instance = new UrlIndexer(window);
+          instance.listen();
         });
 
         afterEach(async () => {
+          instance.unlisten();
           const db = await instance.openSearchStore();
           db.close();
         });
@@ -154,6 +158,7 @@ describe('UrlIndexer', () => {
       let instance;
       before(async () => {
         instance = new UrlIndexer(window);
+        instance.listen();
         const toIndex = [
           {
             id: 'test-id-1',
@@ -180,6 +185,7 @@ describe('UrlIndexer', () => {
       });
 
       after(async () => {
+        instance.unlisten();
         await DbHelper.clearData();
       });
 

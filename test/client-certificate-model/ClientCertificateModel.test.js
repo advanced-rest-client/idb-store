@@ -341,7 +341,7 @@ describe('ClientCertificateModel', () => {
     it('dispatches change event', async () => {
       const item = generator.certificates.clientCertificate();
       const spy = sinon.spy();
-      instance.addEventListener(ArcModelEventTypes.ClientCertificate.State.update, spy);
+      et.addEventListener(ArcModelEventTypes.ClientCertificate.State.update, spy);
       const record = await instance.insert(item);
       assert.isTrue(spy.called, 'Event is dispatched');
       const e = spy.args[0][0];

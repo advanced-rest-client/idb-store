@@ -37,7 +37,7 @@ describe('<client-certificate-model> events based', () => {
       });
 
       it('returns a query result for default parameters', async () => {
-        const result = await ArcModelEvents.ClientCertificate.list(document.body);
+        const result = await ArcModelEvents.ClientCertificate.list(et);
         assert.typeOf(result, 'object', 'result is an object');
         assert.typeOf(result.nextPageToken, 'string', 'has page token');
         assert.typeOf(result.items, 'array', 'has response items');
@@ -45,39 +45,41 @@ describe('<client-certificate-model> events based', () => {
       });
 
       it('respects "limit" parameter', async () => {
-        const result = await ArcModelEvents.ClientCertificate.list(document.body, {
+        const result = await ArcModelEvents.ClientCertificate.list(et, {
           limit: 5,
         });
         assert.lengthOf(result.items, 5);
       });
 
       it('respects "nextPageToken" parameter', async () => {
-        const result1 = await ArcModelEvents.ClientCertificate.list(document.body, {
+        const result1 = await ArcModelEvents.ClientCertificate.list(et, {
           limit: 10,
         });
-        const result2 = await ArcModelEvents.ClientCertificate.list(document.body, {
+        const result2 = await ArcModelEvents.ClientCertificate.list(et, {
           nextPageToken: result1.nextPageToken,
         });
         assert.lengthOf(result2.items, 20);
       });
 
       it('does not set "nextPageToken" when no more results', async () => {
-        const result1 = await ArcModelEvents.ClientCertificate.list(document.body, {
+        const result1 = await ArcModelEvents.ClientCertificate.list(et, {
           limit: 40,
         });
-        const result2 = await ArcModelEvents.ClientCertificate.list(document.body, {
+        const result2 = await ArcModelEvents.ClientCertificate.list(et, {
           nextPageToken: result1.nextPageToken,
         });
         assert.isUndefined(result2.nextPageToken);
       });
 
       it('removes dataKey from the items', async () => {
-        const result = await ArcModelEvents.ClientCertificate.list(document.body);
+        const result = await ArcModelEvents.ClientCertificate.list(et);
         // @ts-ignore
         assert.isUndefined(result.items[0].dataKey);
       });
 
       it('ignores the event when cancelled', async () => {
+        instance.unlisten(et);
+        instance.listen(window);
         document.body.addEventListener(ArcModelEventTypes.ClientCertificate.list, function f(e) {
           e.preventDefault();
           document.body.removeEventListener(ArcModelEventTypes.ClientCertificate.list, f);
@@ -88,6 +90,7 @@ describe('<client-certificate-model> events based', () => {
           detail: { result: undefined },
         });
         document.body.dispatchEvent(e);
+        instance.unlisten(window);
         assert.isUndefined(e.detail.result);
       });
     });
@@ -104,7 +107,7 @@ describe('<client-certificate-model> events based', () => {
       });
 
       it('returns empty array', async () => {
-        const result = await ArcModelEvents.ClientCertificate.list(document.body);
+        const result = await ArcModelEvents.ClientCertificate.list(et);
         assert.typeOf(result, 'object', 'result is an object');
         assert.lengthOf(result.items, 0, 'result has no items');
         assert.isUndefined(result.nextPageToken, 'nextPageToken is undefined');
@@ -135,12 +138,12 @@ describe('<client-certificate-model> events based', () => {
       });
 
       it('returns the document', async () => {
-        const doc = await ArcModelEvents.ClientCertificate.read(document.body, id);
+        const doc = await ArcModelEvents.ClientCertificate.read(et, id);
         assert.typeOf(doc, 'object');
       });
 
       it('has the certificate', async () => {
-        const doc = await ArcModelEvents.ClientCertificate.read(document.body, id);
+        const doc = await ArcModelEvents.ClientCertificate.read(et, id);
         const certificate = /** @type Certificate */ (doc.cert);
         assert.typeOf(certificate, 'object', 'certificate is set');
         assert.typeOf(certificate.data, 'string', 'certificate data is set');
@@ -148,7 +151,7 @@ describe('<client-certificate-model> events based', () => {
       });
 
       it('has the key', async () => {
-        const doc = await ArcModelEvents.ClientCertificate.read(document.body, id);
+        const doc = await ArcModelEvents.ClientCertificate.read(et, id);
         const info = /** @type Certificate */ (doc.key);
         assert.typeOf(info, 'object', 'certificate is set');
         assert.typeOf(info.data, 'string', 'certificate data is set');
@@ -159,7 +162,7 @@ describe('<client-certificate-model> events based', () => {
         let err;
         try {
           // @ts-ignore
-          await ArcModelEvents.ClientCertificate.read(document.body, undefined);
+          await ArcModelEvents.ClientCertificate.read(et, undefined);
         } catch (e) {
           err = e;
         }
@@ -167,6 +170,8 @@ describe('<client-certificate-model> events based', () => {
       });
 
       it('ignores the event when cancelled', async () => {
+        instance.unlisten(et);
+        instance.listen(window);
         document.body.addEventListener(ArcModelEventTypes.ClientCertificate.read, function f(e) {
           e.preventDefault();
           document.body.removeEventListener(ArcModelEventTypes.ClientCertificate.read, f);
@@ -177,6 +182,7 @@ describe('<client-certificate-model> events based', () => {
           detail: { result: undefined },
         });
         document.body.dispatchEvent(e);
+        instance.unlisten(window);
         assert.isUndefined(e.detail.result);
       });
     });
@@ -203,7 +209,7 @@ describe('<client-certificate-model> events based', () => {
       });
 
       it('has the certificate', async () => {
-        const doc = await ArcModelEvents.ClientCertificate.read(document.body, id);
+        const doc = await ArcModelEvents.ClientCertificate.read(et, id);
         const info = /** @type Certificate */ (doc.cert);
         assert.typeOf(info, 'object', 'certificate is set');
         assert.typeOf(info.data, 'Uint8Array', 'certificate data is set');
@@ -211,7 +217,7 @@ describe('<client-certificate-model> events based', () => {
       });
 
       it('has the key', async () => {
-        const doc = await ArcModelEvents.ClientCertificate.read(document.body, id);
+        const doc = await ArcModelEvents.ClientCertificate.read(et, id);
         const info = /** @type Certificate */ (doc.key);
         assert.typeOf(info, 'object', 'certificate is set');
         assert.typeOf(info.data, 'Uint8Array', 'certificate data is set');
@@ -241,7 +247,7 @@ describe('<client-certificate-model> events based', () => {
       });
 
       it('has no key', async () => {
-        const doc = await await ArcModelEvents.ClientCertificate.read(document.body, id);
+        const doc = await ArcModelEvents.ClientCertificate.read(et, id);
         assert.isUndefined(doc.key);
       });
     });
@@ -266,7 +272,7 @@ describe('<client-certificate-model> events based', () => {
     });
 
     it('deletes the document', async () => {
-      await ArcModelEvents.ClientCertificate.delete(document.body, id);
+      await ArcModelEvents.ClientCertificate.delete(et, id);
       const all = await instance.list();
       assert.lengthOf(all.items, 0);
     });
@@ -274,7 +280,7 @@ describe('<client-certificate-model> events based', () => {
     it('throws when no ID', async () => {
       let err;
       try {
-        await ArcModelEvents.ClientCertificate.delete(document.body, undefined);
+        await ArcModelEvents.ClientCertificate.delete(et, undefined);
       } catch (e) {
         err = e;
       }
@@ -282,6 +288,8 @@ describe('<client-certificate-model> events based', () => {
     });
 
     it('ignores the event when cancelled', async () => {
+      instance.unlisten(et);
+      instance.listen(window);
       document.body.addEventListener(ArcModelEventTypes.ClientCertificate.delete, function f(e) {
         e.preventDefault();
         document.body.removeEventListener(ArcModelEventTypes.ClientCertificate.delete, f);
@@ -292,6 +300,7 @@ describe('<client-certificate-model> events based', () => {
         detail: { result: undefined },
       });
       document.body.dispatchEvent(e);
+      instance.unlisten(window);
       assert.isUndefined(e.detail.result);
     });
   });
@@ -313,14 +322,14 @@ describe('<client-certificate-model> events based', () => {
 
     it('inserts an item to the "index" store', async () => {
       const item = generator.certificates.clientCertificate();
-      await ArcModelEvents.ClientCertificate.insert(document.body, item);
+      await ArcModelEvents.ClientCertificate.insert(et, item);
       const all = await instance.list();
       assert.lengthOf(all.items, 1);
     });
 
     it('returns chnagerecord of the "index" store', async () => {
       const item = generator.certificates.clientCertificate();
-      const result = await ArcModelEvents.ClientCertificate.insert(document.body, item);
+      const result = await ArcModelEvents.ClientCertificate.insert(et, item);
       assert.typeOf(result, 'object', 'returns an object');
       assert.typeOf(result.id, 'string', 'has an id');
       assert.typeOf(result.rev, 'string', 'has a rev');
@@ -330,7 +339,7 @@ describe('<client-certificate-model> events based', () => {
 
     it('inserts an item to the "data" store', async () => {
       const item = generator.certificates.clientCertificate();
-      const record = await ArcModelEvents.ClientCertificate.insert(document.body, item);
+      const record = await ArcModelEvents.ClientCertificate.insert(et, item);
       const saved = await instance.get(record.id);
       assert.typeOf(saved.cert, 'object');
     });
@@ -339,7 +348,7 @@ describe('<client-certificate-model> events based', () => {
       const item = generator.certificates.clientCertificate({
         binary: true,
       });
-      const record = await ArcModelEvents.ClientCertificate.insert(document.body, item);
+      const record = await ArcModelEvents.ClientCertificate.insert(et, item);
       const doc = await instance.get(record.id);
       const info = /** @type Certificate */ (doc.cert);
       assert.typeOf(info, 'object', 'certificate is set');
@@ -351,7 +360,7 @@ describe('<client-certificate-model> events based', () => {
       let err;
       try {
         // @ts-ignore
-        await ArcModelEvents.ClientCertificate.insert(document.body, {});
+        await ArcModelEvents.ClientCertificate.insert(et, {});
       } catch (e) {
         err = e;
       }
@@ -363,7 +372,7 @@ describe('<client-certificate-model> events based', () => {
       delete item.type;
       let err;
       try {
-        await ArcModelEvents.ClientCertificate.insert(document.body, item);
+        await ArcModelEvents.ClientCertificate.insert(et, item);
       } catch (e) {
         err = e;
       }
@@ -373,8 +382,8 @@ describe('<client-certificate-model> events based', () => {
     it('dispatches change event', async () => {
       const item = generator.certificates.clientCertificate();
       const spy = sinon.spy();
-      instance.addEventListener(ArcModelEventTypes.ClientCertificate.State.update, spy);
-      const record = await ArcModelEvents.ClientCertificate.insert(document.body, item);
+      et.addEventListener(ArcModelEventTypes.ClientCertificate.State.update, spy);
+      const record = await ArcModelEvents.ClientCertificate.insert(et, item);
       assert.isTrue(spy.called, 'Event is dispatched');
       const e = spy.args[0][0];
       const { changeRecord } = e;
@@ -386,6 +395,8 @@ describe('<client-certificate-model> events based', () => {
     });
 
     it('ignores the event when cancelled', async () => {
+      instance.unlisten(et);
+      instance.listen(window);
       document.body.addEventListener(ArcModelEventTypes.ClientCertificate.insert, function f(e) {
         e.preventDefault();
         document.body.removeEventListener(ArcModelEventTypes.ClientCertificate.insert, f);
@@ -396,6 +407,7 @@ describe('<client-certificate-model> events based', () => {
         detail: { result: undefined },
       });
       document.body.dispatchEvent(e);
+      instance.unlisten(window);
       assert.isUndefined(e.detail.result);
     });
   });
@@ -420,7 +432,7 @@ describe('<client-certificate-model> events based', () => {
       const [certsBefore, dataBefore] = await store.getDatastoreClientCertificates();
       assert.lengthOf(certsBefore, 10, 'has index');
       assert.lengthOf(dataBefore, 10, 'has data');
-      await ArcModelEvents.destroy(document.body, ['client-certificates']);
+      await ArcModelEvents.destroy(et, ['client-certificates']);
       const [certs, data] = await store.getDatastoreClientCertificates();
       assert.lengthOf(certs, 0, 'index is cleared');
       assert.lengthOf(data, 0, 'data is cleared');

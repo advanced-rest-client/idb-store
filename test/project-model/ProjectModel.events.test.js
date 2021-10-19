@@ -21,6 +21,10 @@ describe('ProjectModel', () => {
   }
 
   describe('Events API', () => {
+    before(async () => {
+      await store.destroySaved();
+    });
+
     describe(ArcModelEventTypes.Project.update, () => {
       /** @type ProjectModel */
       let instance;
@@ -32,13 +36,17 @@ describe('ProjectModel', () => {
         instance.listen(et);
       });
 
+      afterEach(() => {
+        instance.unlisten(et);
+      });
+
       after(async () => {
         await store.destroySaved();
       });
 
       it('returns an insert result', async () => {
         const project = generator.http.project();
-        const result = await ArcModelEvents.Project.update(document.body, project);
+        const result = await ArcModelEvents.Project.update(et, project);
         assert.typeOf(result, 'object', 'returns an object');
         assert.typeOf(result.id, 'string', 'has an id');
         assert.typeOf(result.rev, 'string', 'has a rev');
@@ -49,11 +57,13 @@ describe('ProjectModel', () => {
       it('calls post() function', async () => {
         const spy = sinon.spy(instance, 'post');
         const project = generator.http.project();
-        await ArcModelEvents.Project.update(document.body, project);
+        await ArcModelEvents.Project.update(et, project);
         assert.isTrue(spy.called);
       });
 
       it('ignores the event when cancelled', async () => {
+        instance.unlisten(et);
+        instance.listen(window);
         document.body.addEventListener(ArcModelEventTypes.Project.update, function f(e) {
           e.preventDefault();
           document.body.removeEventListener(ArcModelEventTypes.Project.update, f);
@@ -64,11 +74,13 @@ describe('ProjectModel', () => {
           detail: { result: undefined },
         });
         document.body.dispatchEvent(e);
+        instance.unlisten(window);
+        instance.listen(et);
         assert.isUndefined(e.detail.result);
       });
     });
 
-    describe(ArcModelEventTypes.Project.updateBulk, () => {
+    describe('The update bulk event', () => {
       /** @type ProjectModel */
       let instance;
       /** @type Element */
@@ -79,13 +91,17 @@ describe('ProjectModel', () => {
         instance.listen(et);
       });
 
+      afterEach(() => {
+        instance.unlisten(et);
+      });
+
       after(async () => {
         await store.destroySaved();
       });
 
       it('returns a list of insert result', async () => {
-        const projects = generator.http.listProjects();
-        const results = await ArcModelEvents.Project.updateBulk(document.body, projects);
+        const projects = generator.http.listProjects(2);
+        const results = await ArcModelEvents.Project.updateBulk(et, projects);
         assert.typeOf(results, 'array', 'returns an array');
         assert.lengthOf(results, 2, 'returns an array');
         const [result] = results;
@@ -98,11 +114,13 @@ describe('ProjectModel', () => {
       it('calls postBulk() function', async () => {
         const spy = sinon.spy(instance, 'postBulk');
         const projects = generator.http.listProjects();
-        await ArcModelEvents.Project.updateBulk(document.body, projects);
+        await ArcModelEvents.Project.updateBulk(et, projects);
         assert.isTrue(spy.called);
       });
 
       it('ignores the event when cancelled', async () => {
+        instance.unlisten(et);
+        instance.listen(window);
         document.body.addEventListener(ArcModelEventTypes.Project.updateBulk, function f(e) {
           e.preventDefault();
           document.body.removeEventListener(ArcModelEventTypes.Project.updateBulk, f);
@@ -113,6 +131,8 @@ describe('ProjectModel', () => {
           detail: { result: undefined },
         });
         document.body.dispatchEvent(e);
+        instance.unlisten(window);
+        instance.listen(et);
         assert.isUndefined(e.detail.result);
       });
     });
@@ -138,22 +158,28 @@ describe('ProjectModel', () => {
         instance.listen(et);
       });
 
+      afterEach(() => {
+        instance.unlisten(et);
+      });
+
       after(async () => {
         await store.destroySaved();
       });
 
       it('returns an item with the latest revision', async () => {
-        const result = await ArcModelEvents.Project.read(document.body, created[0]._id);
+        const result = await ArcModelEvents.Project.read(et, created[0]._id);
         assert.deepEqual(result, created[0]);
       });
 
       it('calls readProject() function', async () => {
         const spy = sinon.spy(instance, 'readProject');
-        await ArcModelEvents.Project.read(document.body, created[0]._id);
+        await ArcModelEvents.Project.read(et, created[0]._id);
         assert.isTrue(spy.called);
       });
 
       it('ignores the event when cancelled', async () => {
+        instance.unlisten(et);
+        instance.listen(window);
         document.body.addEventListener(ArcModelEventTypes.Project.read, function f(e) {
           e.preventDefault();
           document.body.removeEventListener(ArcModelEventTypes.Project.read, f);
@@ -164,6 +190,8 @@ describe('ProjectModel', () => {
           detail: { result: undefined },
         });
         document.body.dispatchEvent(e);
+        instance.unlisten(window);
+        instance.listen(et);
         assert.isUndefined(e.detail.result);
       });
     });
@@ -189,13 +217,17 @@ describe('ProjectModel', () => {
         instance.listen(et);
       });
 
+      afterEach(() => {
+        instance.unlisten(et);
+      });
+
       after(async () => {
         await store.destroySaved();
       });
 
       it('returns the list of requested items', async () => {
         const ids = [created[0]._id, created[1]._id];
-        const result = await ArcModelEvents.Project.readBulk(document.body, ids);
+        const result = await ArcModelEvents.Project.readBulk(et, ids);
         const p1 = await instance.get(created[0]._id);
         const p2 = await instance.get(created[1]._id);
         assert.deepEqual(result[0], p1);
@@ -203,6 +235,8 @@ describe('ProjectModel', () => {
       });
 
       it('ignores the event when cancelled', async () => {
+        instance.unlisten(et);
+        instance.listen(window);
         document.body.addEventListener(ArcModelEventTypes.Project.readBulk, function f(e) {
           e.preventDefault();
           document.body.removeEventListener(ArcModelEventTypes.Project.readBulk, f);
@@ -213,6 +247,8 @@ describe('ProjectModel', () => {
           detail: { result: undefined },
         });
         document.body.dispatchEvent(e);
+        instance.unlisten(window);
+        instance.listen(et);
         assert.isUndefined(e.detail.result);
       });
     });
@@ -236,12 +272,16 @@ describe('ProjectModel', () => {
         instance.listen(et);
       });
 
+      afterEach(() => {
+        instance.unlisten(et);
+      });
+
       after(async () => {
         await store.destroySaved();
       });
 
       it('returns a list result for default parameters', async () => {
-        const result = await ArcModelEvents.Project.list(document.body);
+        const result = await ArcModelEvents.Project.list(et);
         assert.typeOf(result, 'object', 'result is an object');
         assert.typeOf(result.nextPageToken, 'string', 'has page token');
         assert.typeOf(result.items, 'array', 'has response items');
@@ -250,11 +290,13 @@ describe('ProjectModel', () => {
 
       it('calls list() function', async () => {
         const spy = sinon.spy(instance, 'list');
-        await ArcModelEvents.Project.list(document.body);
+        await ArcModelEvents.Project.list(et);
         assert.isTrue(spy.called);
       });
 
       it('ignores the event when cancelled', async () => {
+        instance.unlisten(et);
+        instance.listen(window);
         document.body.addEventListener(ArcModelEventTypes.Project.list, function f(e) {
           e.preventDefault();
           document.body.removeEventListener(ArcModelEventTypes.Project.list, f);
@@ -265,6 +307,8 @@ describe('ProjectModel', () => {
           detail: { result: undefined },
         });
         document.body.dispatchEvent(e);
+        instance.unlisten(window);
+        instance.listen(et);
         assert.isUndefined(e.detail.result);
       });
     });
@@ -290,31 +334,35 @@ describe('ProjectModel', () => {
         instance.listen(et);
       });
 
+      afterEach(() => {
+        instance.unlisten(et);
+      });
+
       after(async () => {
         await store.destroySaved();
       });
 
       it('returns all projects', async () => {
-        const result = await ArcModelEvents.Project.listAll(document.body);
+        const result = await ArcModelEvents.Project.listAll(et);
         assert.typeOf(result, 'array', 'result is an array');
         assert.lengthOf(result, 30, 'has all results');
       });
 
       it('returns only projects defined in keys', async () => {
-        const result = await ArcModelEvents.Project.listAll(document.body, [created[0].id, created[1].id]);
+        const result = await ArcModelEvents.Project.listAll(et, [created[0].id, created[1].id]);
         assert.typeOf(result, 'array', 'result is an array');
         assert.lengthOf(result, 2, 'has all results');
       });
 
       it('returns all when keys is empty', async () => {
-        const result = await ArcModelEvents.Project.listAll(document.body, []);
+        const result = await ArcModelEvents.Project.listAll(et, []);
         assert.typeOf(result, 'array', 'result is an array');
         assert.lengthOf(result, 30, 'has all results');
       });
 
       it('returns empty array when empty', async () => {
         await store.destroySaved();
-        const result = await ArcModelEvents.Project.listAll(document.body);
+        const result = await ArcModelEvents.Project.listAll(et);
         assert.typeOf(result, 'array', 'result is an array');
         assert.lengthOf(result, 0, 'has no results');
       });
@@ -340,6 +388,10 @@ describe('ProjectModel', () => {
         instance.listen(et);
       });
 
+      afterEach(() => {
+        instance.unlisten(et);
+      });
+
       after(async () => {
         await store.destroySaved();
       });
@@ -347,7 +399,7 @@ describe('ProjectModel', () => {
       it('deletes an entity', async () => {
         const info = created[0];
         const { id } = info;
-        await ArcModelEvents.Project.delete(document.body, id);
+        await ArcModelEvents.Project.delete(et, id);
         let thrown = false;
         try {
           await instance.get(id);
@@ -361,11 +413,13 @@ describe('ProjectModel', () => {
         const info = created[1];
         const { id } = info;
         const spy = sinon.spy(instance, 'removeProject');
-        await ArcModelEvents.Project.delete(document.body, id);
+        await ArcModelEvents.Project.delete(et, id);
         assert.isTrue(spy.called);
       });
 
       it('ignores the event when cancelled', async () => {
+        instance.unlisten(et);
+        instance.listen(window);
         document.body.addEventListener(ArcModelEventTypes.Project.delete, function f(e) {
           e.preventDefault();
           document.body.removeEventListener(ArcModelEventTypes.Project.delete, f);
@@ -376,6 +430,8 @@ describe('ProjectModel', () => {
           detail: { result: undefined },
         });
         document.body.dispatchEvent(e);
+        instance.unlisten(window);
+        instance.listen(et);
         assert.isUndefined(e.detail.result);
       });
     });
@@ -395,6 +451,10 @@ describe('ProjectModel', () => {
         requestModel.listen(et);
       });
 
+      afterEach(() => {
+        instance.unlisten(et);
+      });
+
       after(async () => {
         await store.destroySaved();
       });
@@ -405,7 +465,7 @@ describe('ProjectModel', () => {
         const pRecord = await instance.updateProject(project);
         const rRecord = await requestModel.post('saved', request);
 
-        await ArcModelEvents.Project.addTo(document.body, pRecord.id, rRecord.id, 'saved');
+        await ArcModelEvents.Project.addTo(et, pRecord.id, rRecord.id, 'saved');
 
         const dbRequest = /** @type ARCSavedRequest */ (await requestModel.get('saved', rRecord.id));
         const { projects } = dbRequest;
@@ -418,7 +478,7 @@ describe('ProjectModel', () => {
         const pRecord = await instance.updateProject(project);
         const rRecord = await requestModel.post('saved', request);
         
-        await ArcModelEvents.Project.addTo(document.body, pRecord.id, rRecord.id, 'saved');
+        await ArcModelEvents.Project.addTo(et, pRecord.id, rRecord.id, 'saved');
 
         const dbProject = await instance.get(pRecord.id);
         const { requests } = dbProject;
@@ -434,7 +494,7 @@ describe('ProjectModel', () => {
         await instance.updateProject(project);
         await requestModel.post('saved', request);
         
-        await ArcModelEvents.Project.addTo(document.body, project._id, request._id, 'saved', 2);
+        await ArcModelEvents.Project.addTo(et, project._id, request._id, 'saved', 2);
 
         const dbProject = await instance.get(project._id);
         const { requests } = dbProject;
@@ -457,6 +517,10 @@ describe('ProjectModel', () => {
         requestModel.listen(et);
       });
 
+      afterEach(() => {
+        instance.unlisten(et);
+      });
+
       after(async () => {
         await store.destroySaved();
       });
@@ -474,7 +538,7 @@ describe('ProjectModel', () => {
         await instance.updateProject(targetProject);
         await requestModel.post('saved', request);
 
-        await ArcModelEvents.Project.moveTo(document.body, targetProject._id, request._id, 'saved');
+        await ArcModelEvents.Project.moveTo(et, targetProject._id, request._id, 'saved');
 
         const project = await instance.get(sourceProject._id);
         assert.deepEqual(project.requests, []);
@@ -493,7 +557,7 @@ describe('ProjectModel', () => {
         await instance.updateProject(targetProject);
         await requestModel.post('saved', request);
         
-        await ArcModelEvents.Project.moveTo(document.body, targetProject._id, request._id, 'saved');
+        await ArcModelEvents.Project.moveTo(et, targetProject._id, request._id, 'saved');
 
         const project = await instance.get(targetProject._id);
         assert.deepEqual(project.requests, [request._id]);
@@ -512,7 +576,7 @@ describe('ProjectModel', () => {
         await instance.updateProject(targetProject);
         await requestModel.post('saved', request);
         
-        await ArcModelEvents.Project.moveTo(document.body, targetProject._id, request._id, 'saved');
+        await ArcModelEvents.Project.moveTo(et, targetProject._id, request._id, 'saved');
 
         const dbRequest = /** @type ARCSavedRequest */ (await requestModel.get('saved', request._id));
         assert.deepEqual(dbRequest.projects, [targetProject._id]);
@@ -532,7 +596,7 @@ describe('ProjectModel', () => {
         await instance.updateProject(targetProject);
         await requestModel.post('saved', request);
   
-        await ArcModelEvents.Project.moveTo(document.body, targetProject._id, request._id, 'saved', 3);
+        await ArcModelEvents.Project.moveTo(et, targetProject._id, request._id, 'saved', 3);
         
         const project = await instance.get(targetProject._id);
         assert.deepEqual(project.requests, ['a', 'b', 'c', request._id, 'd', 'e']);
@@ -554,6 +618,10 @@ describe('ProjectModel', () => {
         requestModel.listen(et);
       });
 
+      afterEach(() => {
+        instance.unlisten(et);
+      });
+
       after(async () => {
         await store.destroySaved();
       });
@@ -568,7 +636,7 @@ describe('ProjectModel', () => {
         await instance.updateProject(sourceProject);
         await requestModel.post('saved', request);
 
-        await ArcModelEvents.Project.removeFrom(document.body, sourceProject._id, request._id);
+        await ArcModelEvents.Project.removeFrom(et, sourceProject._id, request._id);
 
         const project = await instance.get(sourceProject._id);
         assert.deepEqual(project.requests, []);
@@ -584,7 +652,7 @@ describe('ProjectModel', () => {
         await instance.updateProject(sourceProject);
         await requestModel.post('saved', request);
         
-        await ArcModelEvents.Project.removeFrom(document.body, sourceProject._id, request._id);
+        await ArcModelEvents.Project.removeFrom(et, sourceProject._id, request._id);
 
         const dbRequest = /** @type ARCSavedRequest */ (await requestModel.get('saved', request._id));
         assert.deepEqual(dbRequest.projects, []);

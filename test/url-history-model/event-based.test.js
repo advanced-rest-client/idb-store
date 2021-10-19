@@ -14,7 +14,7 @@ describe('UrlHistoryModel - event based', () => {
     return fixture(`<div></div>`);
   }
 
-  describe(`${ArcModelEventTypes.UrlHistory.list} event`, () => {
+  describe(`The list event`, () => {
     before(async () => {
       const et = await etFixture();
       const instance = new UrlHistoryModel();
@@ -38,7 +38,7 @@ describe('UrlHistoryModel - event based', () => {
     });
 
     it('returns a query result for default parameters', async () => {
-      const result = await ArcModelEvents.UrlHistory.list(document.body);
+      const result = await ArcModelEvents.UrlHistory.list(et);
       assert.typeOf(result, 'object', 'result is an object');
       assert.typeOf(result.nextPageToken, 'string', 'has page token');
       assert.typeOf(result.items, 'array', 'has response items');
@@ -46,27 +46,27 @@ describe('UrlHistoryModel - event based', () => {
     });
 
     it('respects "limit" parameter', async () => {
-      const result = await ArcModelEvents.UrlHistory.list(document.body, {
+      const result = await ArcModelEvents.UrlHistory.list(et, {
         limit: 5,
       });
       assert.lengthOf(result.items, 5);
     });
 
     it('respects "nextPageToken" parameter', async () => {
-      const result1 = await ArcModelEvents.UrlHistory.list(document.body, {
+      const result1 = await ArcModelEvents.UrlHistory.list(et, {
         limit: 10,
       });
-      const result2 = await ArcModelEvents.UrlHistory.list(document.body, {
+      const result2 = await ArcModelEvents.UrlHistory.list(et, {
         nextPageToken: result1.nextPageToken,
       });
       assert.lengthOf(result2.items, 20);
     });
 
     it('does not set "nextPageToken" when no more results', async () => {
-      const result1 = await ArcModelEvents.UrlHistory.list(document.body, {
+      const result1 = await ArcModelEvents.UrlHistory.list(et, {
         limit: 40,
       });
-      const result2 = await ArcModelEvents.UrlHistory.list(document.body, {
+      const result2 = await ArcModelEvents.UrlHistory.list(et, {
         nextPageToken: result1.nextPageToken,
       });
       assert.isUndefined(result2.nextPageToken);
@@ -77,7 +77,7 @@ describe('UrlHistoryModel - event based', () => {
       entity._id = 'arc://custom-no-midnight/value';
       delete entity.midnight;
       await instance.update(entity);
-      const result = await ArcModelEvents.UrlHistory.list(document.body, {
+      const result = await ArcModelEvents.UrlHistory.list(et, {
         limit: 31,
       });
       const item = result.items.find((i) => i._id === entity._id);
@@ -89,7 +89,7 @@ describe('UrlHistoryModel - event based', () => {
       entity._id = 'arc://custom-with-midnight/value';
       entity.midnight = 100;
       await instance.update(entity);
-      const result = await ArcModelEvents.UrlHistory.list(document.body, {
+      const result = await ArcModelEvents.UrlHistory.list(et, {
         limit: 32,
       });
       const item = result.items.find((i) => i._id === entity._id);
@@ -97,7 +97,7 @@ describe('UrlHistoryModel - event based', () => {
     });
   });
 
-  describe(`${ArcModelEventTypes.UrlHistory.insert} event`, () => {
+  describe(`the insert event`, () => {
     /** @type UrlHistoryModel */
     let instance;
     /** @type Element */
@@ -114,7 +114,7 @@ describe('UrlHistoryModel - event based', () => {
 
     it('returns the changelog', async () => {
       const entity = generator.urls.url();
-      const result = await ArcModelEvents.UrlHistory.insert(document.body, entity._id);
+      const result = await ArcModelEvents.UrlHistory.insert(et, entity._id);
       assert.typeOf(result, 'object', 'returns an object');
       assert.typeOf(result.id, 'string', 'has an id');
       assert.typeOf(result.rev, 'string', 'has a rev');
@@ -124,7 +124,7 @@ describe('UrlHistoryModel - event based', () => {
 
     it('creates an item in the data store', async () => {
       const entity = generator.urls.url();
-      await ArcModelEvents.UrlHistory.insert(document.body, entity._id);
+      await ArcModelEvents.UrlHistory.insert(et, entity._id);
       const result = /** @type ARCUrlHistory */ (await instance.db.get(entity._id));
       assert.typeOf(result, 'object', 'returns an object');
       assert.equal(result._id, entity._id, 'has the id');
@@ -136,8 +136,8 @@ describe('UrlHistoryModel - event based', () => {
 
     it('updates the counter on the same item', async () => {
       const entity = generator.urls.url();
-      await ArcModelEvents.UrlHistory.insert(document.body, entity._id);
-      await ArcModelEvents.UrlHistory.insert(document.body, entity._id);
+      await ArcModelEvents.UrlHistory.insert(et, entity._id);
+      await ArcModelEvents.UrlHistory.insert(et, entity._id);
       const result = /** @type ARCUrlHistory */ (await instance.db.get(entity._id));
       assert.equal(result.cnt, 2, 'has default cnt property');
     });
@@ -145,28 +145,28 @@ describe('UrlHistoryModel - event based', () => {
     it('dispatches change event', async () => {
       const entity = generator.urls.url();
       const spy = sinon.spy();
-      instance.addEventListener(ArcModelEventTypes.UrlHistory.State.update, spy);
-      await ArcModelEvents.UrlHistory.insert(document.body, entity._id);
+      et.addEventListener(ArcModelEventTypes.UrlHistory.State.update, spy);
+      await ArcModelEvents.UrlHistory.insert(et, entity._id);
       assert.isTrue(spy.calledOnce);
     });
 
     it('adds midnight value', async () => {
       const entity = generator.urls.url();
       delete entity.midnight;
-      const result = await ArcModelEvents.UrlHistory.insert(document.body, entity._id);
+      const result = await ArcModelEvents.UrlHistory.insert(et, entity._id);
       assert.typeOf(result.item.midnight, 'number');
     });
 
     it('adds url value', async () => {
       const entity = generator.urls.url();
       delete entity.url;
-      const result = await ArcModelEvents.UrlHistory.insert(document.body, entity._id);
+      const result = await ArcModelEvents.UrlHistory.insert(et, entity._id);
       assert.typeOf(result.item.url, 'string');
     });
 
     it('lower-cases the _id', async () => {
       const url = 'https://API.domain.com';
-      const result = await ArcModelEvents.UrlHistory.insert(document.body, url);
+      const result = await ArcModelEvents.UrlHistory.insert(et, url);
       assert.equal(result.id, url.toLowerCase());
     });
   });
@@ -196,18 +196,19 @@ describe('UrlHistoryModel - event based', () => {
     });
 
     it('returns a list of matched results', async () => {
-      const result = await ArcModelEvents.UrlHistory.query(document.body, 'http://');
+      const result = await ArcModelEvents.UrlHistory.query(et, 'http://');
       assert.typeOf(result, 'array', 'result is an array');
-      assert.lengthOf(result, 30, 'has all results');
+      const httpUrls = created.filter(i => i.url.startsWith('http://'));
+      assert.lengthOf(result, httpUrls.length, 'has all results');
     });
 
     it('matches the URL', async () => {
-      const result = await ArcModelEvents.UrlHistory.query(document.body, created[0]._id);
+      const result = await ArcModelEvents.UrlHistory.query(et, created[0]._id);
       assert.lengthOf(result, 1);
     });
 
     it('returns empty array when not found', async () => {
-      const result = await ArcModelEvents.UrlHistory.query(document.body, 'this will not exist');
+      const result = await ArcModelEvents.UrlHistory.query(et, 'this will not exist');
       assert.lengthOf(result, 0);
     });
 
@@ -216,7 +217,7 @@ describe('UrlHistoryModel - event based', () => {
       entity._id = 'arc://custom-no-midnight/value';
       delete entity.midnight;
       await instance.update(entity);
-      const result = await ArcModelEvents.UrlHistory.query(document.body, entity._id);
+      const result = await ArcModelEvents.UrlHistory.query(et, entity._id);
       const [item] = result;
       assert.typeOf(item.midnight, 'number');
     });
@@ -226,7 +227,7 @@ describe('UrlHistoryModel - event based', () => {
       entity._id = 'arc://custom-with-midnight/value';
       entity.midnight = 100;
       await instance.update(entity);
-      const result = await ArcModelEvents.UrlHistory.query(document.body, entity._id);
+      const result = await ArcModelEvents.UrlHistory.query(et, entity._id);
       const [item] = result;
       assert.equal(item.midnight, 100);
     });
@@ -236,7 +237,7 @@ describe('UrlHistoryModel - event based', () => {
       entity._id = 'arc://custom-no-url/value';
       delete entity.url;
       await instance.update(entity);
-      const result = await ArcModelEvents.UrlHistory.query(document.body, entity._id);
+      const result = await ArcModelEvents.UrlHistory.query(et, entity._id);
       const [item] = result;
       assert.typeOf(item.url, 'string');
     });
@@ -246,14 +247,14 @@ describe('UrlHistoryModel - event based', () => {
       entity._id = 'arc://custom-with-url/value';
       entity.url = 'https://API.domain.com';
       await instance.update(entity);
-      const result = await ArcModelEvents.UrlHistory.query(document.body, entity._id);
+      const result = await ArcModelEvents.UrlHistory.query(et, entity._id);
       const [item] = result;
       assert.equal(item.url, 'https://API.domain.com');
     });
 
     it('queries using lowercase keys', async () => {
-      await ArcModelEvents.UrlHistory.insert(document.body, 'https://API.domain.com');
-      const result = await ArcModelEvents.UrlHistory.query(document.body, 'https://api.DomaIN.com');
+      await ArcModelEvents.UrlHistory.insert(et, 'https://API.domain.com');
+      const result = await ArcModelEvents.UrlHistory.query(et, 'https://api.DomaIN.com');
       const [item] = result;
       assert.equal(item.url, 'https://API.domain.com');
     });
@@ -277,7 +278,7 @@ describe('UrlHistoryModel - event based', () => {
     });
 
     it('deletes saved instance', async () => {
-      await ArcModelEvents.destroy(document.body, ['url-history'])
+      await ArcModelEvents.destroy(et, ['url-history'])
       const result = await store.getDatastoreUrlsData();
       assert.deepEqual(result, []);
     });
@@ -293,8 +294,8 @@ describe('UrlHistoryModel - event based', () => {
       const instance = new UrlHistoryModel();
       instance.listen(et);
       const request = generator.http.history();
-      TransportEvents.transport(document.body, 'test', request);
-      const e = await oneEvent(instance, ArcModelEventTypes.UrlHistory.State.update);
+      TransportEvents.transport(et, 'test', request);
+      const e = await oneEvent(et, ArcModelEventTypes.UrlHistory.State.update);
       
       // @ts-ignore
       const record = e.changeRecord;
@@ -321,16 +322,20 @@ describe('UrlHistoryModel - event based', () => {
     afterEach(() => store.destroyUrlHistory());
 
     it('ignores cancelled events', async () => {
+      instance.unlisten(et);
+      instance.listen(window);
       document.body.addEventListener(ArcModelEventTypes.UrlHistory.delete, function f(e) {
-        e.preventDefault();
         document.body.removeEventListener(ArcModelEventTypes.UrlHistory.delete, f);
+        e.preventDefault();
       });
       const result = await ArcModelEvents.UrlHistory.delete(document.body, dataObj._id);
+      instance.unlisten(window);
+      instance.listen(et);
       assert.isUndefined(result);
     });
 
     it('removes the entity from the datastore', async () => {
-      await ArcModelEvents.UrlHistory.delete(document.body, dataObj._id);
+      await ArcModelEvents.UrlHistory.delete(et, dataObj._id);
       const result = await store.getDatastoreUrlsData();
       assert.deepEqual(result, []);
     });
@@ -338,7 +343,7 @@ describe('UrlHistoryModel - event based', () => {
     it('throws when no ID when constructing the event ', async () => {
       let thrown = false;
       try {
-        await ArcModelEvents.UrlHistory.delete(document.body, undefined);
+        await ArcModelEvents.UrlHistory.delete(et, undefined);
       } catch (e) {
         thrown = true;
       }
@@ -354,7 +359,7 @@ describe('UrlHistoryModel - event based', () => {
           composed: true,
           detail: { result: undefined },
         });
-        document.body.dispatchEvent(e);
+        et.dispatchEvent(e);
         await e.detail.result;
       } catch (e) {
         thrown = true;

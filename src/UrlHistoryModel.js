@@ -155,7 +155,7 @@ export class UrlHistoryModel extends ArcBaseModel {
   }
 
   /**
-   * Queries for websocket history objects.
+   * Queries for an URL history objects.
    *
    * @param {string} q A partial url to match results. If not set it returns whole history.
    * @return {Promise<ARCUrlHistory[]>} A promise resolved to a list of PouchDB documents.

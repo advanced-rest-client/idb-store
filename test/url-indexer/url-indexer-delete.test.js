@@ -1,7 +1,9 @@
 import { assert, aTimeout } from '@open-wc/testing';
 import { ArcModelEventTypes, ArcModelEvents } from '@advanced-rest-client/events';
+import { ARCModelStateDeleteEvent } from '@advanced-rest-client/events/src/models/BaseEvents.js';
 import { DbHelper } from './db-helper.js';
 import { UrlIndexer } from '../../index.js';
+import { deletemodelHandler } from '../../src/UrlIndexer.js';
 
 describe('UrlIndexer', () => {
   describe('Deleting indexes', () => {
@@ -15,6 +17,7 @@ describe('UrlIndexer', () => {
       let instance;
       beforeEach(async () => {
         instance = new UrlIndexer(window);
+        instance.listen();
         await instance.index([
           {
             url: FULL_URL,
@@ -32,7 +35,7 @@ describe('UrlIndexer', () => {
       afterEach(async () => {
         const db = await instance.openSearchStore();
         db.close();
-        await DbHelper.clearData()
+        await DbHelper.clearData();
       });
 
       it('deletes index of a single request', async () => {
@@ -53,6 +56,7 @@ describe('UrlIndexer', () => {
       let instance;
       beforeEach(async () => {
         instance = new UrlIndexer(window);
+        instance.listen();
         await instance.index([
           {
             url: 'https://domain.com/',
@@ -85,6 +89,7 @@ describe('UrlIndexer', () => {
       let instance;
       beforeEach(async () => {
         instance = new UrlIndexer(window);
+        instance.listen();
         await instance.index([
           {
             url: 'https://domain.com/',
@@ -117,6 +122,7 @@ describe('UrlIndexer', () => {
       let instance;
       beforeEach(async () => {
         instance = new UrlIndexer(window);
+        instance.listen();
         await instance.index([
           {
             url: 'https://domain.com/',
@@ -134,41 +140,52 @@ describe('UrlIndexer', () => {
       afterEach(async () => {
         const db = await instance.openSearchStore();
         db.close();
-        await DbHelper.clearData()
+        await DbHelper.clearData();
       });
 
       it('clears saved via saved-requests type', async () => {
-        await ArcModelEvents.destroyed(document.body, 'saved-requests');
+        const e = new ARCModelStateDeleteEvent('saved-requests');
+        await instance[deletemodelHandler](e);
         const data = await DbHelper.readAllIndexes();
         assert.lengthOf(data, 3);
       });
 
       it('clears saved via saved type', async () => {
-        await ArcModelEvents.destroyed(document.body, 'saved');
+        const e = new ARCModelStateDeleteEvent('saved');
+        await instance[deletemodelHandler](e);
+        // ArcModelEvents.destroyed(document.body, 'saved');
         const data = await DbHelper.readAllIndexes();
         assert.lengthOf(data, 3);
       });
 
       it('clears history via history-requests type', async () => {
-        await ArcModelEvents.destroyed(document.body, 'history-requests');
+        const e = new ARCModelStateDeleteEvent('history-requests');
+        await instance[deletemodelHandler](e);
+        // ArcModelEvents.destroyed(document.body, 'history-requests');
         const data = await DbHelper.readAllIndexes();
         assert.lengthOf(data, 3);
       });
 
       it('clears saved via history type', async () => {
-        await ArcModelEvents.destroyed(document.body, 'history');
+        const e = new ARCModelStateDeleteEvent('history');
+        await instance[deletemodelHandler](e);
+        // ArcModelEvents.destroyed(document.body, 'history');
         const data = await DbHelper.readAllIndexes();
         assert.lengthOf(data, 3);
       });
 
       it('clears all requests', async () => {
-        await ArcModelEvents.destroyed(document.body, 'all');
+        const e = new ARCModelStateDeleteEvent('all');
+        await instance[deletemodelHandler](e);
+        // ArcModelEvents.destroyed(document.body, 'all');
         const data = await DbHelper.readAllIndexes();
         assert.lengthOf(data, 0);
       });
 
       it('ignores other data stores', async () => {
-        await ArcModelEvents.destroyed(document.body, 'other');
+        const e = new ARCModelStateDeleteEvent('other');
+        await instance[deletemodelHandler](e);
+        // ArcModelEvents.destroyed(document.body, 'other');
         const data = await DbHelper.readAllIndexes();
         assert.lengthOf(data, 6);
       });
@@ -179,6 +196,7 @@ describe('UrlIndexer', () => {
       let instance;
       beforeEach(async () => {
         instance = new UrlIndexer(window);
+        instance.listen();
         await instance.index([
           {
             url: 'https://domain.com/',

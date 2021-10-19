@@ -33,6 +33,10 @@ describe('ProjectModel', () => {
       instance.listen(et);
     });
 
+    afterEach(() => {
+      instance.unlisten(et);
+    });
+
     after(async () => {
       await store.destroySaved();
     });
@@ -85,14 +89,14 @@ describe('ProjectModel', () => {
     it('dispatches project update event', async () => {
       const project = generator.http.project();
       instance.post(project);
-      const { changeRecord } = /** @type ARCProjectUpdatedEvent */ (await oneEvent(instance, ArcModelEventTypes.Project.State.update));
+      const { changeRecord } = /** @type ARCProjectUpdatedEvent */ (await oneEvent(et, ArcModelEventTypes.Project.State.update));
       assert.typeOf(changeRecord, 'object');
     });
 
     it('has change record values on the event', async () => {
       const project = generator.http.project();
       instance.post(project);
-      const { changeRecord } = /** @type ARCProjectUpdatedEvent */ (await oneEvent(instance, ArcModelEventTypes.Project.State.update));
+      const { changeRecord } = /** @type ARCProjectUpdatedEvent */ (await oneEvent(et, ArcModelEventTypes.Project.State.update));
       assert.typeOf(changeRecord.id, 'string', 'has an id');
       assert.typeOf(changeRecord.rev, 'string', 'has a rev');
       assert.typeOf(changeRecord.item, 'object', 'has created object');
@@ -137,6 +141,10 @@ describe('ProjectModel', () => {
       instance.listen(et);
     });
 
+    afterEach(() => {
+      instance.unlisten(et);
+    });
+
     after(async () => {
       await store.destroySaved();
     });
@@ -167,7 +175,7 @@ describe('ProjectModel', () => {
     it('dispatches change event for each updated object', async () => {
       const projects = generator.http.listProjects(2);
       const spy = sinon.spy();
-      instance.addEventListener(ArcModelEventTypes.Project.State.update, spy);
+      et.addEventListener(ArcModelEventTypes.Project.State.update, spy);
       await instance.postBulk(projects);
       assert.equal(spy.callCount, 2);
     });
@@ -214,6 +222,10 @@ describe('ProjectModel', () => {
       instance.listen(et);
     });
 
+    afterEach(() => {
+      instance.unlisten(et);
+    });
+
     after(async () => {
       await store.destroySaved();
     });
@@ -258,6 +270,10 @@ describe('ProjectModel', () => {
       instance.listen(et);
     });
 
+    afterEach(() => {
+      instance.unlisten(et);
+    });
+
     after(async () => {
       await store.destroySaved();
     });
@@ -299,6 +315,10 @@ describe('ProjectModel', () => {
       et = await etFixture();
       instance = new ProjectModel();
       instance.listen(et);
+    });
+
+    afterEach(() => {
+      instance.unlisten(et);
     });
 
     after(async () => {
@@ -361,6 +381,10 @@ describe('ProjectModel', () => {
       instance.listen(et);
     });
 
+    afterEach(() => {
+      instance.unlisten(et);
+    });
+
     after(async () => {
       await store.destroySaved();
     });
@@ -411,6 +435,10 @@ describe('ProjectModel', () => {
       instance.listen(et);
     });
 
+    afterEach(() => {
+      instance.unlisten(et);
+    });
+
     after(async () => {
       await store.destroySaved();
     });
@@ -432,7 +460,7 @@ describe('ProjectModel', () => {
       const info = created[1];
       const { id } = info;
       instance.delete(id);
-      const { id: deleteId, rev } = /** @type ARCProjectDeleteEvent */ (await oneEvent(instance, ArcModelEventTypes.Project.State.delete));
+      const { id: deleteId, rev } = /** @type ARCProjectDeleteEvent */ (await oneEvent(et, ArcModelEventTypes.Project.State.delete));
       assert.equal(deleteId, id);
       assert.typeOf(rev, 'string');
     });
@@ -464,6 +492,10 @@ describe('ProjectModel', () => {
       instance.listen(et);
       requestModel = new RequestModel(); 
       requestModel.listen(et);
+    });
+
+    afterEach(() => {
+      instance.unlisten(et);
     });
 
     after(async () => {
@@ -529,7 +561,7 @@ describe('ProjectModel', () => {
       const rRecord = await requestModel.post('history', request);
       
       const spy = sinon.spy();
-      instance.addEventListener(ArcModelEventTypes.Request.State.update, spy);
+      et.addEventListener(ArcModelEventTypes.Request.State.update, spy);
 
       await instance.addRequest(pRecord.id, rRecord.id, 'history');
       const { changeRecord } = spy.args[0][0];
@@ -570,6 +602,10 @@ describe('ProjectModel', () => {
       instance.listen(et);
       requestModel = new RequestModel(); 
       requestModel.listen(et);
+    });
+
+    afterEach(() => {
+      instance.unlisten(et);
     });
 
     after(async () => {
@@ -691,7 +727,7 @@ describe('ProjectModel', () => {
       await requestModel.post('history', request);
 
       const spy = sinon.spy();
-      instance.addEventListener(ArcModelEventTypes.Request.State.update, spy);
+      et.addEventListener(ArcModelEventTypes.Request.State.update, spy);
       await instance.moveRequest(targetProject._id, request._id, 'history');
 
       const { changeRecord } = spy.args[0][0];
@@ -720,6 +756,10 @@ describe('ProjectModel', () => {
       instance.listen(et);
       requestModel = new RequestModel(); 
       requestModel.listen(et);
+    });
+
+    afterEach(() => {
+      instance.unlisten(et);
     });
 
     after(async () => {

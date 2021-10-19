@@ -2,7 +2,8 @@
 
 export default /** @type TestRunnerConfig */ ({
   // files: 'test/request-model/RequestModel.events.test.js',
-  files: 'test/request-model/RequestModel.test.js',
+  // files: 'test/auth-data-model/*.test.js',
+  files: 'test/**/*.test.js',
   nodeResolve: true,
   concurrency: 1,
   watch: true,

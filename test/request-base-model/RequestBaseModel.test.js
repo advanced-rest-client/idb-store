@@ -29,7 +29,11 @@ describe('RequestBaseModel', () => {
       instance.listen(et);
     });
 
-    it('Returns instance of PouchDB', () => {
+    afterEach(() => {
+      instance.unlisten(et);
+    });
+
+    it('returns an instance of PouchDB', () => {
       const result = instance.savedDb;
       assert.equal(result.constructor.name, 'PouchDB');
     });
@@ -49,6 +53,10 @@ describe('RequestBaseModel', () => {
       et = await etFixture();
       instance = new RequestBaseModel(dbName);
       instance.listen(et);
+    });
+
+    afterEach(() => {
+      instance.unlisten(et);
     });
 
     it('Returns instance of PouchDB', () => {
@@ -73,6 +81,10 @@ describe('RequestBaseModel', () => {
       instance.listen(et);
     });
 
+    afterEach(() => {
+      instance.unlisten(et);
+    });
+
     it('Returns instance of PouchDB', () => {
       const result = instance.projectDb;
       assert.equal(result.constructor.name, 'PouchDB');
@@ -93,6 +105,10 @@ describe('RequestBaseModel', () => {
       et = await etFixture();
       instance = new RequestBaseModel(dbName);
       instance.listen(et);
+    });
+
+    afterEach(() => {
+      instance.unlisten(et);
     });
 
     [
@@ -128,6 +144,10 @@ describe('RequestBaseModel', () => {
       instance.listen(et);
     });
 
+    afterEach(() => {
+      instance.unlisten(et);
+    });
+
     it('deletes the model', async () => {
       await instance.deleteModel('saved');
     });
@@ -144,7 +164,7 @@ describe('RequestBaseModel', () => {
 
     it('dispatches the state event', async () => {
       const spy = sinon.spy();
-      instance.addEventListener(ArcModelEventTypes.destroyed, spy);
+      et.addEventListener(ArcModelEventTypes.destroyed, spy);
       await instance.deleteModel('saved');
       const e = spy.args[0][0];
       assert.equal(e.store, 'saved');
@@ -162,6 +182,10 @@ describe('RequestBaseModel', () => {
       et = await etFixture();
       instance = new RequestBaseModel(dbName);
       instance.listen(et);
+    });
+
+    afterEach(() => {
+      instance.unlisten(et);
     });
 
     it('returns the change record', async () => {
@@ -194,7 +218,7 @@ describe('RequestBaseModel', () => {
     it('dispatches change event', async () => {
       const project = generator.http.project();
       const spy = sinon.spy();
-      instance.addEventListener(ArcModelEventTypes.Project.State.update, spy);
+      et.addEventListener(ArcModelEventTypes.Project.State.update, spy);
       await instance.updateProject(project);
       assert.isTrue(spy.calledOnce);
     });
@@ -202,7 +226,7 @@ describe('RequestBaseModel', () => {
     it('has change record on the event', async () => {
       const project = generator.http.project();
       const spy = sinon.spy();
-      instance.addEventListener(ArcModelEventTypes.Project.State.update, spy);
+      et.addEventListener(ArcModelEventTypes.Project.State.update, spy);
       await instance.updateProject(project);
       const { changeRecord } = spy.args[0][0];
       assert.isUndefined(changeRecord.oldRev);
@@ -224,6 +248,10 @@ describe('RequestBaseModel', () => {
       instance.listen(et);
       const project = generator.http.project();
       record = await instance.updateProject(project);
+    });
+
+    afterEach(() => {
+      instance.unlisten(et);
     });
 
     it('reads project entity by the id only', async () => {
@@ -265,6 +293,10 @@ describe('RequestBaseModel', () => {
       record = await instance.updateProject(project);
     });
 
+    afterEach(() => {
+      instance.unlisten(et);
+    });
+
     it('removes object from the datastore with id only', async () => {
       await instance.removeProject(record.id);
       const list = await store.getDatastoreProjectsData();
@@ -273,14 +305,14 @@ describe('RequestBaseModel', () => {
 
     it('dispatches the state event', async () => {
       const spy = sinon.spy();
-      instance.addEventListener(ArcModelEventTypes.Project.State.delete, spy);
+      et.addEventListener(ArcModelEventTypes.Project.State.delete, spy);
       await instance.removeProject(record.id);
       assert.isTrue(spy.calledOnce);
     });
 
     it('has change record on the event', async () => {
       const spy = sinon.spy();
-      instance.addEventListener(ArcModelEventTypes.Project.State.delete, spy);
+      et.addEventListener(ArcModelEventTypes.Project.State.delete, spy);
       await instance.removeProject(record.id);
       const { id, rev } = spy.args[0][0];
       assert.equal(id, record.id, 'has the id');
@@ -321,13 +353,17 @@ describe('RequestBaseModel', () => {
       requestModel.listen(et);
     });
 
+    afterEach(() => {
+      instance.unlisten(et);
+    });
+
     it('does nothing when project has no requests', async () => {
       const project = generator.http.project();
       const rec = await instance.updateProject(project);
       const spyRequestsDelete = sinon.spy();
       const spyRequestsUpdate = sinon.spy();
-      instance.addEventListener(ArcModelEventTypes.Request.deleteBulk, spyRequestsDelete);
-      instance.addEventListener(ArcModelEventTypes.Request.updateBulk, spyRequestsUpdate);
+      et.addEventListener(ArcModelEventTypes.Request.deleteBulk, spyRequestsDelete);
+      et.addEventListener(ArcModelEventTypes.Request.updateBulk, spyRequestsUpdate);
       await instance.removeProjectRequests(rec.id);
       assert.isFalse(spyRequestsDelete.called);
       assert.isFalse(spyRequestsUpdate.called);
@@ -344,8 +380,8 @@ describe('RequestBaseModel', () => {
       await requestModel.post('saved', request);
       const spyRequestsDelete = sinon.spy();
       const spyRequestsUpdate = sinon.spy();
-      instance.addEventListener(ArcModelEventTypes.Request.deleteBulk, spyRequestsDelete);
-      instance.addEventListener(ArcModelEventTypes.Request.updateBulk, spyRequestsUpdate);
+      et.addEventListener(ArcModelEventTypes.Request.deleteBulk, spyRequestsDelete);
+      et.addEventListener(ArcModelEventTypes.Request.updateBulk, spyRequestsUpdate);
       await instance.removeProjectRequests(project._id);
       assert.isTrue(spyRequestsDelete.called, 'remove request event called');
       assert.isFalse(spyRequestsUpdate.called, 'update request event not called');
@@ -370,8 +406,8 @@ describe('RequestBaseModel', () => {
       await requestModel.post('saved', request);
       const spyRequestsDelete = sinon.spy();
       const spyRequestsUpdate = sinon.spy();
-      instance.addEventListener(ArcModelEventTypes.Request.deleteBulk, spyRequestsDelete);
-      instance.addEventListener(ArcModelEventTypes.Request.updateBulk, spyRequestsUpdate);
+      et.addEventListener(ArcModelEventTypes.Request.deleteBulk, spyRequestsDelete);
+      et.addEventListener(ArcModelEventTypes.Request.updateBulk, spyRequestsUpdate);
       await instance.removeProjectRequests(project._id);
       assert.isFalse(spyRequestsDelete.called, 'remove request event not called');
       assert.isTrue(spyRequestsUpdate.called, 'update request event called');
@@ -387,8 +423,8 @@ describe('RequestBaseModel', () => {
       await instance.updateProject(project);
       const spyRequestsDelete = sinon.spy();
       const spyRequestsUpdate = sinon.spy();
-      instance.addEventListener(ArcModelEventTypes.Request.deleteBulk, spyRequestsDelete);
-      instance.addEventListener(ArcModelEventTypes.Request.updateBulk, spyRequestsUpdate);
+      et.addEventListener(ArcModelEventTypes.Request.deleteBulk, spyRequestsDelete);
+      et.addEventListener(ArcModelEventTypes.Request.updateBulk, spyRequestsUpdate);
       await instance.removeProjectRequests(project._id);
       assert.isFalse(spyRequestsDelete.called, 'remove request event not called');
       assert.isFalse(spyRequestsUpdate.called, 'update request event not called');
@@ -405,8 +441,8 @@ describe('RequestBaseModel', () => {
       await requestModel.post('saved', request);
       const spyRequestsDelete = sinon.spy();
       const spyRequestsUpdate = sinon.spy();
-      instance.addEventListener(ArcModelEventTypes.Request.deleteBulk, spyRequestsDelete);
-      instance.addEventListener(ArcModelEventTypes.Request.updateBulk, spyRequestsUpdate);
+      et.addEventListener(ArcModelEventTypes.Request.deleteBulk, spyRequestsDelete);
+      et.addEventListener(ArcModelEventTypes.Request.updateBulk, spyRequestsUpdate);
       await instance.removeProjectRequests(project._id);
       assert.isFalse(spyRequestsDelete.called, 'remove request event not called');
       assert.isFalse(spyRequestsUpdate.called, 'update request event not called');
@@ -423,8 +459,8 @@ describe('RequestBaseModel', () => {
       await requestModel.post('saved', request);
       const spyRequestsDelete = sinon.spy();
       const spyRequestsUpdate = sinon.spy();
-      instance.addEventListener(ArcModelEventTypes.Request.deleteBulk, spyRequestsDelete);
-      instance.addEventListener(ArcModelEventTypes.Request.updateBulk, spyRequestsUpdate);
+      et.addEventListener(ArcModelEventTypes.Request.deleteBulk, spyRequestsDelete);
+      et.addEventListener(ArcModelEventTypes.Request.updateBulk, spyRequestsUpdate);
       await instance.removeProjectRequests(project._id);
       assert.isFalse(spyRequestsDelete.called, 'remove request event not called');
       assert.isFalse(spyRequestsUpdate.called, 'update request event not called');
@@ -440,44 +476,45 @@ describe('RequestBaseModel', () => {
       et = await etFixture();
       instance = new RequestBaseModel(dbName);
       instance.listen(et);
-      await store.http.savedData();
+      await store.insertSaved();
     });
-
+    
     afterEach(async () => {
+      instance.unlisten(et);
       await store.destroySaved();
     });
 
     it('clears requested data', async () => {
-      await ArcModelEvents.destroy(document.body, ['legacy-projects']);
+      await ArcModelEvents.destroy(et, ['legacy-projects']);
       const items = await store.getDatastoreProjectsData();
       assert.lengthOf(items, 0);
     });
 
     it('calls deleteModel() with the type name', async () => {
       const spy = sinon.spy(instance, 'deleteModel');
-      await ArcModelEvents.destroy(document.body, ['legacy-projects']);
+      await ArcModelEvents.destroy(et, ['legacy-projects']);
       assert.isTrue(spy.called, 'the function was called');
       assert.equal(spy.args[0][0], 'legacy-projects', 'passes the store name');
     });
 
     it('notifies about data destroy', async () => {
       const spy = sinon.spy();
-      instance.addEventListener(ArcModelEventTypes.destroyed, spy);
-      await ArcModelEvents.destroy(document.body, ['legacy-projects']);
+      et.addEventListener(ArcModelEventTypes.destroyed, spy);
+      await ArcModelEvents.destroy(et, ['legacy-projects']);
       assert.isTrue(spy.called, 'the event is dispatched');
     });
 
     it('ignores when no stores in the request', async () => {
       const spy = sinon.spy();
-      instance.addEventListener(ArcModelEventTypes.destroyed, spy);
-      await ArcModelEvents.destroy(document.body, []);
+      et.addEventListener(ArcModelEventTypes.destroyed, spy);
+      await ArcModelEvents.destroy(et, []);
       assert.isFalse(spy.called);
     });
 
     it('ignores when requesting different store', async () => {
       const spy = sinon.spy();
-      instance.addEventListener(ArcModelEventTypes.destroyed, spy);
-      await ArcModelEvents.destroy(document.body, ['other']);
+      et.addEventListener(ArcModelEventTypes.destroyed, spy);
+      await ArcModelEvents.destroy(et, ['other']);
       assert.isFalse(spy.called);
     });
   });

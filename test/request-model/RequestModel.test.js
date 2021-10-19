@@ -28,7 +28,7 @@ describe('RequestModel', () => {
       const type = 'saved';
       let requests = /** @type ARCSavedRequest[] */ (null);
       before(async () => {
-        const data = await store.http.savedData();
+        const data = await store.insertSaved();
         requests = data.requests;
       });
 
@@ -45,6 +45,10 @@ describe('RequestModel', () => {
         et = await etFixture();
         instance = new RequestModel();
         instance.listen(et);
+      });
+
+      afterEach(() => {
+        instance.unlisten(et);
       });
 
       it('reads request entity with the latest revision', async () => {
@@ -134,6 +138,10 @@ describe('RequestModel', () => {
         instance.listen(et);
       });
 
+      afterEach(() => {
+        instance.unlisten(et);
+      });
+
       it('reads request entity with the latest revision', async () => {
         const result = await instance.get(type, requests[0]._id);
         assert.typeOf(result, 'object', 'returns an object')
@@ -179,6 +187,10 @@ describe('RequestModel', () => {
       et = await etFixture();
       instance = new RequestModel();
       instance.listen(et);
+    });
+
+    afterEach(() => {
+      instance.unlisten(et);
     });
 
     it('reads multiple requests in bulk', async () => {
@@ -258,6 +270,10 @@ describe('RequestModel', () => {
       instance.listen(et);
     });
 
+    afterEach(() => {
+      instance.unlisten(et);
+    });
+
     it('returns a change record', async () => {
       const request = generator.http.saved();
       const result = await instance.post('saved', request);
@@ -326,11 +342,11 @@ describe('RequestModel', () => {
       assert.isUndefined(updated._test);
     });
 
-    it('dispatches update event', async () => {
+    it('dispatches the updated event', async () => {
       const request = generator.http.saved();
       instance.post('saved', request);
       // @ts-ignore
-      const { changeRecord, requestType } = await oneEvent(instance, ArcModelEventTypes.Request.State.update);
+      const { changeRecord, requestType } = await oneEvent(et, ArcModelEventTypes.Request.State.update);
       assert.typeOf(changeRecord, 'object');
       assert.equal(requestType, 'saved');
     });
@@ -382,6 +398,10 @@ describe('RequestModel', () => {
       et = await etFixture();
       instance = new RequestModel();
       instance.listen(et);
+    });
+
+    afterEach(() => {
+      instance.unlisten(et);
     });
 
     it('returns a change record', async () => {
@@ -457,7 +477,7 @@ describe('RequestModel', () => {
       const insert = generator.http.savedData()
       const { requests } = insert;
       const spy = sinon.spy();
-      instance.addEventListener(ArcModelEventTypes.Request.State.update, spy);
+      et.addEventListener(ArcModelEventTypes.Request.State.update, spy);
       await instance.postBulk('saved', requests);
       assert.equal(spy.callCount, requests.length);
     });
@@ -521,6 +541,10 @@ describe('RequestModel', () => {
       instance.listen(et);
     });
 
+    afterEach(() => {
+      instance.unlisten(et);
+    });
+
     it('removes an item from the data store', async () => {
       const request = requests[0];
       await instance.delete(type, request._id);
@@ -549,7 +573,7 @@ describe('RequestModel', () => {
       const request = requests[2];
       instance.delete(type, request._id, request._rev);
       // @ts-ignore
-      const { id, rev } = await oneEvent(instance, ArcModelEventTypes.Request.State.delete);
+      const { id, rev } = await oneEvent(et, ArcModelEventTypes.Request.State.delete);
       assert.equal(id, request._id, 'has the ID');
       assert.typeOf(rev, 'string', 'has the revision');
       assert.notEqual(rev, request._rev, 'has updated revision');
@@ -571,7 +595,7 @@ describe('RequestModel', () => {
       assert.isAbove(projects.length, 0, 'request has project');
       instance.delete(type, request._id);
       // @ts-ignore
-      const { changeRecord } = await oneEvent(instance, ArcModelEventTypes.Project.State.update);
+      const { changeRecord } = await oneEvent(et, ArcModelEventTypes.Project.State.update);
       assert.equal(changeRecord.id, projects[0], 'has the ID');
       assert.typeOf(changeRecord.rev, 'string', 'has the revision');
     });
@@ -610,6 +634,10 @@ describe('RequestModel', () => {
       instance.listen(et);
     });
 
+    afterEach(() => {
+      instance.unlisten(et);
+    });
+
     it('removes requests from the store', async () => {
       const items = requests.splice(0, 2).map((item) => item._id);
       await instance.deleteBulk(type, items);
@@ -639,7 +667,7 @@ describe('RequestModel', () => {
     it('dispatches deleted event for each deleted entity', async () => {
       const items = requests.splice(6, 2).map((item) => item._id);
       const spy = sinon.spy();
-      instance.addEventListener(ArcModelEventTypes.Request.State.delete, spy);
+      et.addEventListener(ArcModelEventTypes.Request.State.delete, spy);
       await instance.deleteBulk(type, items);
       assert.equal(spy.callCount, 2);
     });
@@ -714,6 +742,10 @@ describe('RequestModel', () => {
       doc._rev = result.rev;
     });
 
+    afterEach(() => {
+      instance.unlisten(et);
+    });
+
     it('restores deleted items', async () => {
       const result = await instance.revertRemove('saved', [deleted(doc)]);
       const updatedRev = result[0].item._rev;
@@ -726,7 +758,7 @@ describe('RequestModel', () => {
 
     it('dispatches change event', async () => {
       const spy = sinon.spy();
-      instance.addEventListener(ArcModelEventTypes.Request.State.update, spy);
+      et.addEventListener(ArcModelEventTypes.Request.State.update, spy);
       await instance.revertRemove('saved', [deleted(doc)]);
       assert.isTrue(spy.calledOnce, 'event is dispatched');
       const { changeRecord } = spy.args[0][0];
@@ -774,6 +806,10 @@ describe('RequestModel', () => {
       et = await etFixture();
       instance = new RequestModel();
       instance.listen(et);
+    });
+
+    afterEach(() => {
+      instance.unlisten(et);
     });
 
     it('Returns 1 when a.order > b.order', () => {
@@ -892,6 +928,10 @@ describe('RequestModel', () => {
       instance.listen(et);
     });
 
+    afterEach(() => {
+      instance.unlisten(et);
+    });
+
     it('Reads requests by their ID', async () => {
       const result = await instance.readProjectRequestsLegacy('1234-project');
       assert.lengthOf(result, 2);
@@ -937,6 +977,10 @@ describe('RequestModel', () => {
       et = await etFixture();
       instance = new RequestModel();
       instance.listen(et);
+    });
+
+    afterEach(() => {
+      instance.unlisten(et);
     });
 
     it('Calls getBulk() with arguments', async () => {
@@ -985,6 +1029,10 @@ describe('RequestModel', () => {
       et = await etFixture();
       instance = new RequestModel();
       instance.listen(et);
+    });
+
+    afterEach(() => {
+      instance.unlisten(et);
     });
 
     it('Rejects when no query', async () => {
@@ -1045,6 +1093,10 @@ describe('RequestModel', () => {
       instance.listen(et);
     });
 
+    afterEach(() => {
+      instance.unlisten(et);
+    });
+
     it('Calls [queryStore] with arguments', async () => {
       // @ts-ignore
       const spy = sinon.spy(instance, queryStore);
@@ -1066,6 +1118,10 @@ describe('RequestModel', () => {
       et = await etFixture();
       instance = new RequestModel();
       instance.listen(et);
+    });
+
+    afterEach(() => {
+      instance.unlisten(et);
     });
 
     it('Calls [queryStore] with arguments', async () => {
@@ -1099,6 +1155,10 @@ describe('RequestModel', () => {
       et = await etFixture();
       instance = new RequestModel();
       instance.listen(et);
+    });
+
+    afterEach(() => {
+      instance.unlisten(et);
     });
 
     it('Rejects when no query', async () => {
@@ -1184,6 +1244,10 @@ describe('RequestModel', () => {
       instance.listen(et);
     });
 
+    afterEach(() => {
+      instance.unlisten(et);
+    });
+
     it('Indexes history data', async () => {
       await instance.indexData('history');
     });
@@ -1202,6 +1266,10 @@ describe('RequestModel', () => {
       et = await etFixture();
       instance = new RequestModel();
       instance.listen(et);
+    });
+
+    afterEach(() => {
+      instance.unlisten(et);
     });
 
     it('Returns single promise for saved-requests', () => {
@@ -1255,6 +1323,10 @@ describe('RequestModel', () => {
       et = await etFixture();
       instance = new RequestModel();
       instance.listen(et);
+    });
+
+    afterEach(() => {
+      instance.unlisten(et);
     });
 
     after(async () => {
@@ -1332,6 +1404,10 @@ describe('RequestModel', () => {
       instance.listen(et);
     });
 
+    afterEach(() => {
+      instance.unlisten(et);
+    });
+
     it('ignores when a project has no requests', async () => {
       const [pr] = projects;
       const [req] = pr.requests;
@@ -1371,6 +1447,10 @@ describe('RequestModel', () => {
       et = await etFixture();
       instance = new RequestModel();
       instance.listen(et);
+    });
+
+    afterEach(() => {
+      instance.unlisten(et);
     });
 
     it('returns a change record', async () => {
@@ -1499,6 +1579,10 @@ describe('RequestModel', () => {
       et = await etFixture();
       instance = new RequestModel();
       instance.listen(et);
+    });
+
+    afterEach(() => {
+      instance.unlisten(et);
     });
 
     it('throws when no q argument', async () => {

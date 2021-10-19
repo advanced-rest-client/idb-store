@@ -143,7 +143,7 @@ describe('VariablesModel', () => {
           name: 'test5',
         };
         const spy = sinon.spy();
-        instance.addEventListener(ArcModelEventTypes.Environment.State.update, spy);
+        et.addEventListener(ArcModelEventTypes.Environment.State.update, spy);
         await instance.updateEnvironment(entity);
         assert.isTrue(spy.calledOnce);
       });
@@ -153,7 +153,7 @@ describe('VariablesModel', () => {
           name: 'test6',
         };
         const spy = sinon.spy();
-        instance.addEventListener(ArcModelEventTypes.Environment.State.update, spy);
+        et.addEventListener(ArcModelEventTypes.Environment.State.update, spy);
         const record1 = await instance.updateEnvironment(entity);
         const variable = generator.variables.variable();
         variable.environment = entity.name;
@@ -170,7 +170,7 @@ describe('VariablesModel', () => {
           name: 'test7',
         };
         const spy = sinon.spy();
-        instance.addEventListener(ArcModelEventTypes.Environment.State.update, spy);
+        et.addEventListener(ArcModelEventTypes.Environment.State.update, spy);
         const record1 = await instance.updateEnvironment(entity);
         const variable = generator.variables.variable();
         variable.environment = entity.name;
@@ -285,7 +285,7 @@ describe('VariablesModel', () => {
 
       it('dispatches the change event', async () => {
         const spy = sinon.spy();
-        instance.addEventListener(ArcModelEventTypes.Environment.State.delete, spy);
+        et.addEventListener(ArcModelEventTypes.Environment.State.delete, spy);
         await instance.deleteEnvironment(created._id);
         assert.isTrue(spy.called);
       });
@@ -490,10 +490,7 @@ describe('VariablesModel', () => {
         et = await etFixture();
         instance = new VariablesModel();
         instance.listen(et);
-        // @ts-ignore
-        created = await store.insertVariables({
-          size: 1,
-        });
+        created = await store.insertVariables(1);
       });
 
       afterEach(async () => {
@@ -529,7 +526,7 @@ describe('VariablesModel', () => {
 
       it('dispatches the change event', async () => {
         const spy = sinon.spy();
-        instance.addEventListener(ArcModelEventTypes.Variable.State.delete, spy);
+        et.addEventListener(ArcModelEventTypes.Variable.State.delete, spy);
         await instance.deleteVariable(created[0]._id);
         assert.isTrue(spy.called);
       });
@@ -542,10 +539,7 @@ describe('VariablesModel', () => {
       let et;
       let created = /** @type ARCVariable[] */ (null);
       beforeEach(async () => {
-        // @ts-ignore
-        created = await store.insertVariables({
-          size: 32,
-        });
+        created = await store.insertVariables(32);
         const entity = generator.variables.variable();
         entity.environment = created[0].environment;
         et = await etFixture();
@@ -592,10 +586,7 @@ describe('VariablesModel', () => {
       let et;
       let created = /** @type ARCVariable[] */ (null);
       beforeEach(async () => {
-        // @ts-ignore
-        created = await store.insertVariables({
-          size: 32,
-        });
+        created = await store.insertVariables(32);
         const entity = generator.variables.variable();
         entity.environment = created[0].environment;
         et = await etFixture();
@@ -693,7 +684,7 @@ describe('VariablesModel', () => {
       });
 
       it('reads the current via the event', async () => {
-        const result = await ArcModelEvents.Environment.current(document.body);
+        const result = await ArcModelEvents.Environment.current(et);
         assert.typeOf(result, 'object', 'result is an object');
         assert.equal(result.environment, null, 'the environment property is not set');
         const defaultVars = created.filter((item) => item.environment === 'default');
@@ -771,7 +762,7 @@ describe('VariablesModel', () => {
         const first = created.find((item) => item.environment !== 'default');
         const env = await instance.readEnvironment(first.environment);
         instance.currentEnvironment = env._id;
-        const e = await oneEvent(instance, ArcModelEventTypes.Environment.State.select);
+        const e = await oneEvent(et, ArcModelEventTypes.Environment.State.select);
         const { detail } = e;
         assert.typeOf(detail, 'object', 'detail is an object');
         assert.typeOf(detail.environment, 'object', 'the environment property is set');
@@ -782,8 +773,8 @@ describe('VariablesModel', () => {
       it('selects an environment via the event', async () => {
         const first = created.find((item) => item.environment !== 'default');
         const env = await instance.readEnvironment(first.environment);
-        ArcModelEvents.Environment.select(document.body, env._id);
-        const e = await oneEvent(instance, ArcModelEventTypes.Environment.State.select);
+        ArcModelEvents.Environment.select(et, env._id);
+        const e = await oneEvent(et, ArcModelEventTypes.Environment.State.select);
         const { detail } = e;
         assert.typeOf(detail, 'object', 'detail is an object');
         assert.typeOf(detail.environment, 'object', 'the environment property is set');

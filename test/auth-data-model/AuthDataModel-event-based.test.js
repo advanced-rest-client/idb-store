@@ -44,6 +44,8 @@ describe('Authorization data model - events', () => {
     });
 
     it('ignores cancelled events', async () => {
+      instance.unlisten(et);
+      instance.listen(window);
       document.body.addEventListener(ArcModelEventTypes.AuthData.query, function f(e) {
         e.preventDefault();
         document.body.removeEventListener(ArcModelEventTypes.AuthData.query, f);
@@ -59,11 +61,12 @@ describe('Authorization data model - events', () => {
       // @ts-ignore
       e.method = method;
       document.body.dispatchEvent(e);
+      instance.unlisten(window);
       assert.isUndefined(e.detail.result);
     });
 
     it('results with auth data', async () => {
-      const result = await ArcModelEvents.AuthData.query(document.body, url, method);
+      const result = await ArcModelEvents.AuthData.query(et, url, method);
       assert.equal(result.username, 'uname-test');
       assert.equal(result.password, 'pwd-test');
       assert.equal(result.domain, 'some');
@@ -86,6 +89,8 @@ describe('Authorization data model - events', () => {
     });
 
     it('ignores cancelled events', async () => {
+      instance.unlisten(et);
+      instance.listen(window);
       document.body.addEventListener(ArcModelEventTypes.AuthData.update, function f(e) {
         e.preventDefault();
         document.body.removeEventListener(ArcModelEventTypes.AuthData.update, f);
@@ -103,11 +108,12 @@ describe('Authorization data model - events', () => {
       // @ts-ignore
       e.authData = authData;
       document.body.dispatchEvent(e);
+      instance.unlisten(window);
       assert.isUndefined(e.detail.result);
     });
 
     it('updates the entity', async () => {
-      const record = await ArcModelEvents.AuthData.update(document.body, url, method, authData);
+      const record = await ArcModelEvents.AuthData.update(et, url, method, authData);
       assert.typeOf(record, 'object', 'returns an object');
       assert.typeOf(record.rev, 'string', 'revision is set');
       assert.typeOf(record.id, 'string', 'id is set');

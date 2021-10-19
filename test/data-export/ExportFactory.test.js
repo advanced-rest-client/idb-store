@@ -222,7 +222,6 @@ describe('ExportFactory', () => {
         const [item] = authdata;
         assert.typeOf(item._id, 'string', 'has the _id');
         assert.typeOf(item._rev, 'string', 'has the _rev');
-        assert.equal(item.type, 'basic', 'has type property');
       });
     });
 

@@ -1,6 +1,6 @@
-import { assert, aTimeout } from '@open-wc/testing';
+import { assert, oneEvent } from '@open-wc/testing';
 import 'pouchdb/dist/pouchdb.js';
-import { ArcModelEvents } from '@advanced-rest-client/events';
+import { ArcModelEvents, ArcModelEventTypes } from '@advanced-rest-client/events';
 import { DbHelper } from './db-helper.js';
 import {
   UrlIndexer,
@@ -20,10 +20,11 @@ describe('UrlIndexer', () => {
     describe('Data indexing', () => {
       describe('[storeIndexes]()', () => {
         /** @type UrlIndexer */
-      let instance;
+        let instance;
         let inserts;
         beforeEach(async () => {
           instance = new UrlIndexer(window);
+          instance.listen();
           inserts = [
             {
               id: 't1',
@@ -41,6 +42,7 @@ describe('UrlIndexer', () => {
         });
 
         afterEach(async () => {
+          instance.unlisten();
           const db = await instance.openSearchStore();
           db.close();
           await DbHelper.clearData();
@@ -56,10 +58,11 @@ describe('UrlIndexer', () => {
 
       describe('[getIndexedDataAll]()', () => {
         /** @type UrlIndexer */
-      let instance;
+        let instance;
         let inserts;
         beforeEach(async () => {
           instance = new UrlIndexer(window);
+          instance.listen();
           inserts = [
             {
               id: 't1',
@@ -83,6 +86,7 @@ describe('UrlIndexer', () => {
         });
 
         afterEach(async () => {
+          instance.unlisten();
           const db = await instance.openSearchStore();
           db.close();
           await DbHelper.clearData();
@@ -116,10 +120,11 @@ describe('UrlIndexer', () => {
 
       describe('index()', () => {
         /** @type UrlIndexer */
-      let instance;
+        let instance;
         let requests;
         beforeEach(async () => {
           instance = new UrlIndexer(window);
+          instance.listen();
           requests = [
             {
               id: 'test-id-1',
@@ -135,12 +140,13 @@ describe('UrlIndexer', () => {
         });
 
         afterEach(async () => {
+          instance.unlisten();
           const db = await instance.openSearchStore();
           db.close();
           await DbHelper.clearData();
         });
 
-        it('Stores indexes in the data store', async () => {
+        it('indexes the data in the store', async () => {
           await instance.index(requests);
           const result = await DbHelper.readAllIndexes();
           assert.typeOf(result, 'array');
@@ -155,10 +161,9 @@ describe('UrlIndexer', () => {
           assert.lengthOf(result, 11);
         });
 
-        it('Indexes via event', async () => {
+        it('indexes via the event', async () => {
           ArcModelEvents.UrlIndexer.update(document.body, requests);
-          // should be enough?
-          await aTimeout(200);
+          await oneEvent(window, ArcModelEventTypes.UrlIndexer.State.finished);
           const result = await DbHelper.readAllIndexes();
           assert.lengthOf(result, 11);
         });
@@ -220,12 +225,14 @@ describe('UrlIndexer', () => {
         const REQUEST_TYPE = 'saved';
 
         /** @type UrlIndexer */
-      let instance;
+        let instance;
         beforeEach(async () => {
           instance = new UrlIndexer(window);
+          instance.listen();
         });
 
         afterEach(async () => {
+          instance.unlisten();
           const db = await instance.openSearchStore();
           db.close();
         });
@@ -333,9 +340,11 @@ describe('UrlIndexer', () => {
       let instance;
       beforeEach(async () => {
         instance = new UrlIndexer(window);
+        instance.listen();
       });
 
       afterEach(async () => {
+        instance.unlisten();
         const db = await instance.openSearchStore();
         db.close();
         await DbHelper.clearData();
@@ -374,9 +383,11 @@ describe('UrlIndexer', () => {
       let instance;
       beforeEach(async () => {
         instance = new UrlIndexer(window);
+        instance.listen();
       });
 
       afterEach(async () => {
+        instance.unlisten();
         const db = await instance.openSearchStore();
         db.close();
         await DbHelper.clearData();
@@ -401,9 +412,11 @@ describe('UrlIndexer', () => {
       let instance;
       beforeEach(async () => {
         instance = new UrlIndexer(window);
+        instance.listen();
       });
 
       afterEach(async () => {
+        instance.unlisten();
         const db = await instance.openSearchStore();
         db.close();
         await DbHelper.clearData();

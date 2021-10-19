@@ -18,7 +18,7 @@ describe('RestApiModel', () => {
   }
 
   describe('Events API', () => {
-    describe(`${ArcModelEventTypes.RestApi.read} event`, () => {
+    describe(`the read event`, () => {
       let created;
       /** @type RestApiModel */
       let instance;
@@ -34,18 +34,20 @@ describe('RestApiModel', () => {
 
       afterEach(async () => store.destroyApisAll());
 
-      it('returns index data with the id', async () => {
-        const doc = await ArcModelEvents.RestApi.read(document.body, created.id);
+      it('returns the index data with the id', async () => {
+        const doc = await ArcModelEvents.RestApi.read(et, created.id);
         assert.equal(doc._id, created.id);
       });
 
       it('returns index data with the rev', async () => {
-        const doc = await ArcModelEvents.RestApi.read(document.body, created.id, created.rev);
+        const doc = await ArcModelEvents.RestApi.read(et, created.id, created.rev);
         assert.equal(doc._id, created.id);
         assert.equal(doc._rev, created.rev);
       });
 
       it('ignores the event when cancelled', async () => {
+        instance.unlisten(et);
+        instance.listen(window);
         document.body.addEventListener(ArcModelEventTypes.RestApi.read, function f(e) {
           e.preventDefault();
           document.body.removeEventListener(ArcModelEventTypes.RestApi.read, f);
@@ -56,11 +58,13 @@ describe('RestApiModel', () => {
           detail: { result: undefined },
         });
         document.body.dispatchEvent(e);
+        instance.unlisten(window);
+        instance.listen(et);
         assert.isUndefined(e.detail.result);
       });
     });
 
-    describe(`${ArcModelEventTypes.RestApi.update} event`, () => {
+    describe(`the update event`, () => {
       after(() => store.destroyApisAll());
 
       /** @type RestApiModel */
@@ -75,8 +79,12 @@ describe('RestApiModel', () => {
         entity = generator.restApi.apiIndex();
       });
 
+      afterEach(() => {
+        instance.unlisten(et);
+      });
+
       it('returns the changelog', async () => {
-        const result = await ArcModelEvents.RestApi.update(document.body, entity);
+        const result = await ArcModelEvents.RestApi.update(et, entity);
         assert.typeOf(result, 'object', 'returns an object');
         assert.typeOf(result.id, 'string', 'has an id');
         assert.typeOf(result.rev, 'string', 'has a rev');
@@ -85,13 +93,13 @@ describe('RestApiModel', () => {
       });
 
       it('creates new object in the data store', async () => {
-        const record = await ArcModelEvents.RestApi.update(document.body, entity);
+        const record = await ArcModelEvents.RestApi.update(et, entity);
         const result = await instance.indexDb.get(record.id);
         assert.typeOf(result, 'object');
       });
 
       it('returns the created entity', async () => {
-        const record = await ArcModelEvents.RestApi.update(document.body, entity);
+        const record = await ArcModelEvents.RestApi.update(et, entity);
         const { item } = record;
         assert.typeOf(item, 'object', 'is an object');
         assert.typeOf(item._id, 'string', 'has an id');
@@ -101,12 +109,14 @@ describe('RestApiModel', () => {
 
       it('dispatches change event', async () => {
         const spy = sinon.spy();
-        instance.addEventListener(ArcModelEventTypes.RestApi.State.update, spy);
-        await ArcModelEvents.RestApi.update(document.body, entity);
+        et.addEventListener(ArcModelEventTypes.RestApi.State.update, spy);
+        await ArcModelEvents.RestApi.update(et, entity);
         assert.isTrue(spy.calledOnce);
       });
 
       it('ignores the event when cancelled', async () => {
+        instance.unlisten(et);
+        instance.listen(window);
         document.body.addEventListener(ArcModelEventTypes.RestApi.update, function f(e) {
           e.preventDefault();
           document.body.removeEventListener(ArcModelEventTypes.RestApi.update, f);
@@ -117,11 +127,13 @@ describe('RestApiModel', () => {
           detail: { result: undefined },
         });
         document.body.dispatchEvent(e);
+        instance.unlisten(window);
+        instance.listen(et);
         assert.isUndefined(e.detail.result);
       });
     });
 
-    describe(`${ArcModelEventTypes.RestApi.dataUpdate} event`, () => {
+    describe(`The data update event`, () => {
       after(() => store.destroyApisAll());
 
       /** @type RestApiModel */
@@ -137,8 +149,12 @@ describe('RestApiModel', () => {
         entity = /** @type ARCRestApi */ (generator.restApi.apiData(index)[0]);
       });
 
+      afterEach(() => {
+        instance.unlisten(et);
+      });
+
       it('returns the changelog', async () => {
-        const result = await ArcModelEvents.RestApi.dataUpdate(document.body, entity);
+        const result = await ArcModelEvents.RestApi.dataUpdate(et, entity);
         assert.typeOf(result, 'object', 'returns an object');
         assert.typeOf(result.id, 'string', 'has an id');
         assert.typeOf(result.rev, 'string', 'has a rev');
@@ -147,13 +163,13 @@ describe('RestApiModel', () => {
       });
 
       it('creates new object in the data store', async () => {
-        const record = await ArcModelEvents.RestApi.dataUpdate(document.body, entity);
+        const record = await ArcModelEvents.RestApi.dataUpdate(et, entity);
         const result = await instance.dataDb.get(record.id);
         assert.typeOf(result, 'object');
       });
 
       it('returns the created entity', async () => {
-        const record = await ArcModelEvents.RestApi.dataUpdate(document.body, entity);
+        const record = await ArcModelEvents.RestApi.dataUpdate(et, entity);
         const { item } = record;
         assert.typeOf(item, 'object', 'is an object');
         assert.typeOf(item._id, 'string', 'has an id');
@@ -163,12 +179,14 @@ describe('RestApiModel', () => {
 
       it('dispatches change event', async () => {
         const spy = sinon.spy();
-        instance.addEventListener(ArcModelEventTypes.RestApi.State.dataUpdate, spy);
-        await ArcModelEvents.RestApi.dataUpdate(document.body, entity);
+        et.addEventListener(ArcModelEventTypes.RestApi.State.dataUpdate, spy);
+        await ArcModelEvents.RestApi.dataUpdate(et, entity);
         assert.isTrue(spy.calledOnce);
       });
 
       it('ignores the event when cancelled', async () => {
+        instance.unlisten(et);
+        instance.listen(window);
         document.body.addEventListener(ArcModelEventTypes.RestApi.dataUpdate, function f(e) {
           e.preventDefault();
           document.body.removeEventListener(ArcModelEventTypes.RestApi.dataUpdate, f);
@@ -179,11 +197,13 @@ describe('RestApiModel', () => {
           detail: { result: undefined },
         });
         document.body.dispatchEvent(e);
+        instance.unlisten(window);
+        instance.listen(et);
         assert.isUndefined(e.detail.result);
       });
     });
 
-    describe(`${ArcModelEventTypes.RestApi.dataRead} event`, () => {
+    describe(`The data read event`, () => {
       let dataEntities = /** @type ARCRestApi[] */ (null);
       /** @type RestApiModel */
       let instance;
@@ -193,27 +213,30 @@ describe('RestApiModel', () => {
         et = await etFixture();
         instance = new RestApiModel();
         instance.listen(et);
-        // @ts-ignore
-        const result = await store.insertApis({
-          size: 1,
-        });
+        const result = await store.insertApis(1);
         dataEntities = /** @type ARCRestApi[] */ (result[1]);
       });
 
       afterEach(() => store.destroyApisAll());
 
+      afterEach(() => {
+        instance.unlisten(et);
+      });
+
       it('reads the entity', async () => {
-        const doc = await ArcModelEvents.RestApi.dataRead(document.body, dataEntities[0]._id);
+        const doc = await ArcModelEvents.RestApi.dataRead(et, dataEntities[0]._id);
         assert.typeOf(doc, 'object');
       });
 
       it('returns the entity with the rev', async () => {
-        const doc = await ArcModelEvents.RestApi.dataRead(document.body, dataEntities[0]._id, dataEntities[0]._rev);
+        const doc = await ArcModelEvents.RestApi.dataRead(et, dataEntities[0]._id, dataEntities[0]._rev);
         assert.equal(doc._id, dataEntities[0]._id);
         assert.equal(doc._rev, dataEntities[0]._rev);
       });
 
       it('ignores the event when cancelled', async () => {
+        instance.unlisten(et);
+        instance.listen(window);
         document.body.addEventListener(ArcModelEventTypes.RestApi.dataRead, function f(e) {
           e.preventDefault();
           document.body.removeEventListener(ArcModelEventTypes.RestApi.dataRead, f);
@@ -224,11 +247,13 @@ describe('RestApiModel', () => {
           detail: { result: undefined },
         });
         document.body.dispatchEvent(e);
+        instance.unlisten(window);
+        instance.listen(et);
         assert.isUndefined(e.detail.result);
       });
     });
 
-    describe(`${ArcModelEventTypes.RestApi.updateBulk} event`, () => {
+    describe(`The update bulk event`, () => {
       /** @type RestApiModel */
       let instance;
       /** @type Element */
@@ -239,16 +264,17 @@ describe('RestApiModel', () => {
         et = await etFixture();
         instance = new RestApiModel();
         instance.listen(et);
-        // @ts-ignore
-        items = /** @type ARCRestApiIndex[] */ (generator.generateApiIndexList({
-          size: 10,
-        }));
+        items = generator.restApi.apiIndexList(10);
+      });
+
+      afterEach(() => {
+        instance.unlisten(et);
       });
 
       after(() => store.destroyApisAll());
 
       it('returns the changelog for each item', async () => {
-        const records = await ArcModelEvents.RestApi.updateBulk(document.body, items);
+        const records = await ArcModelEvents.RestApi.updateBulk(et, items);
         assert.typeOf(records, 'array', 'returns an array');
         assert.lengthOf(records, items.length, 'has the same number of items');
         const [result] = records;
@@ -261,12 +287,14 @@ describe('RestApiModel', () => {
 
       it('dispatches change event', async () => {
         const spy = sinon.spy();
-        instance.addEventListener(ArcModelEventTypes.RestApi.State.update, spy);
-        await ArcModelEvents.RestApi.updateBulk(document.body, items);
+        et.addEventListener(ArcModelEventTypes.RestApi.State.update, spy);
+        await ArcModelEvents.RestApi.updateBulk(et, items);
         assert.equal(spy.callCount, items.length);
       });
 
       it('ignores the event when cancelled', async () => {
+        instance.unlisten(et);
+        instance.listen(window);
         document.body.addEventListener(ArcModelEventTypes.RestApi.update, function f(e) {
           e.preventDefault();
           document.body.removeEventListener(ArcModelEventTypes.RestApi.update, f);
@@ -277,11 +305,13 @@ describe('RestApiModel', () => {
           detail: { result: undefined },
         });
         document.body.dispatchEvent(e);
+        instance.unlisten(window);
+        instance.listen(et);
         assert.isUndefined(e.detail.result);
       });
     });
 
-    describe(`${ArcModelEventTypes.RestApi.versionDelete} event`, () => {
+    describe(`The version delete event`, () => {
       /** @type RestApiModel */
       let instance;
       /** @type Element */
@@ -302,15 +332,18 @@ describe('RestApiModel', () => {
       });
 
       afterEach(() => store.destroyApisAll());
+      afterEach(() => {
+        instance.unlisten(et);
+      });
 
       it('removes a version from the index', async () => {
-        await ArcModelEvents.RestApi.versionDelete(document.body, indexEntity._id, dataEntity.version);
+        await ArcModelEvents.RestApi.versionDelete(et, indexEntity._id, dataEntity.version);
         const doc = await instance.indexDb.get(indexEntity._id);
         assert.notInclude(doc.versions, dataEntity.version);
       });
 
       it('removes the version entity', async () => {
-        await ArcModelEvents.RestApi.versionDelete(document.body, indexEntity._id, dataEntity.version);
+        await ArcModelEvents.RestApi.versionDelete(et, indexEntity._id, dataEntity.version);
         let thrown = false;
         try {
           await instance.dataDb.get(`${indexEntity._id}|${dataEntity.version}`);
@@ -324,7 +357,7 @@ describe('RestApiModel', () => {
         const doc = await instance.indexDb.get(indexEntity._id);
         doc.versions = [dataEntity.version];
         await instance.indexDb.put(doc);
-        await ArcModelEvents.RestApi.versionDelete(document.body, indexEntity._id, dataEntity.version);
+        await ArcModelEvents.RestApi.versionDelete(et, indexEntity._id, dataEntity.version);
         let thrown = false;
         try {
           await instance.indexDb.get(indexEntity._id);
@@ -336,8 +369,8 @@ describe('RestApiModel', () => {
 
       it('dispatches index change event', async () => {
         const spy = sinon.spy();
-        instance.addEventListener(ArcModelEventTypes.RestApi.State.update, spy);
-        await ArcModelEvents.RestApi.versionDelete(document.body, indexEntity._id, dataEntity.version);
+        et.addEventListener(ArcModelEventTypes.RestApi.State.update, spy);
+        await ArcModelEvents.RestApi.versionDelete(et, indexEntity._id, dataEntity.version);
         assert.isTrue(spy.calledOnce);
       });
 
@@ -345,7 +378,7 @@ describe('RestApiModel', () => {
         const doc = await instance.indexDb.get(indexEntity._id);
         delete doc.versions;
         await instance.indexDb.put(doc);
-        await ArcModelEvents.RestApi.versionDelete(document.body, indexEntity._id, dataEntity.version);
+        await ArcModelEvents.RestApi.versionDelete(et, indexEntity._id, dataEntity.version);
         const result = await instance.dataDb.get(`${indexEntity._id}|${dataEntity.version}`);
         assert.ok(result);
       });
@@ -354,7 +387,7 @@ describe('RestApiModel', () => {
         const doc = await instance.indexDb.get(indexEntity._id);
         doc.versions = ['hello'];
         await instance.indexDb.put(doc);
-        await ArcModelEvents.RestApi.versionDelete(document.body, indexEntity._id, dataEntity.version);
+        await ArcModelEvents.RestApi.versionDelete(et, indexEntity._id, dataEntity.version);
         const result = await instance.dataDb.get(`${indexEntity._id}|${dataEntity.version}`);
         assert.ok(result);
       });
@@ -362,13 +395,15 @@ describe('RestApiModel', () => {
       it('updates "latest" property when removing latest version', async () => {
         const doc = await instance.indexDb.get(indexEntity._id);
         const { latest, versions } = doc;
-        await ArcModelEvents.RestApi.versionDelete(document.body, indexEntity._id, latest);
+        await ArcModelEvents.RestApi.versionDelete(et, indexEntity._id, latest);
         const index = await instance.indexDb.get(indexEntity._id);
         assert.notEqual(index.latest, latest, 'latest is updated');
         assert.include(versions, index.latest, 'latest is one of the versions');
       });
 
       it('ignores the event when cancelled', async () => {
+        instance.unlisten(et);
+        instance.listen(window);
         document.body.addEventListener(ArcModelEventTypes.RestApi.versionDelete, function f(e) {
           e.preventDefault();
           document.body.removeEventListener(ArcModelEventTypes.RestApi.versionDelete, f);
@@ -379,11 +414,13 @@ describe('RestApiModel', () => {
           detail: { result: undefined },
         });
         document.body.dispatchEvent(e);
+        instance.unlisten(window);
+        instance.listen(et);
         assert.isUndefined(e.detail.result);
       });
     });
 
-    describe(`${ArcModelEventTypes.RestApi.delete} event`, () => {
+    describe(`The delete event`, () => {
       let indexEntity = /** @type ARCRestApiIndex */ (null);
       /** @type RestApiModel */
       let instance;
@@ -401,21 +438,26 @@ describe('RestApiModel', () => {
       });
 
       afterEach(() => store.destroyApisAll());
+      afterEach(() => {
+        instance.unlisten(et);
+      });
 
       it('removes index entity from the store', async () => {
-        await ArcModelEvents.RestApi.delete(document.body, indexEntity._id);
+        await ArcModelEvents.RestApi.delete(et, indexEntity._id);
         const indexes = await store.getDatastoreApiIndexData();
         assert.lengthOf(indexes, 0);
       });
 
       it('returns delete record', async () => {
-        const result = await ArcModelEvents.RestApi.delete(document.body, indexEntity._id);
+        const result = await ArcModelEvents.RestApi.delete(et, indexEntity._id);
         assert.equal(result.id, indexEntity._id);
         assert.typeOf(result.rev, 'string');
         assert.notEqual(result.rev, indexEntity._rev);
       });
 
       it('ignores the event when cancelled', async () => {
+        instance.unlisten(et);
+        instance.listen(window);
         document.body.addEventListener(ArcModelEventTypes.RestApi.delete, function f(e) {
           e.preventDefault();
           document.body.removeEventListener(ArcModelEventTypes.RestApi.delete, f);
@@ -426,19 +468,19 @@ describe('RestApiModel', () => {
           detail: { result: undefined },
         });
         document.body.dispatchEvent(e);
+        instance.unlisten(window);
+        instance.listen(et);
         assert.isUndefined(e.detail.result);
       });
     });
 
-    describe(`${ArcModelEventTypes.RestApi.list} event`, () => {
+    describe(`The list event`, () => {
       /** @type RestApiModel */
       let instance;
       /** @type Element */
       let et;
       beforeEach(async () => {
-        // @ts-ignore
-        await store.insertApis({
-          size: 30,
+        await store.insertApis(30, {
           versionSize: 1,
         });
         et = await etFixture();
@@ -449,7 +491,7 @@ describe('RestApiModel', () => {
       afterEach(() => store.destroyApisAll());
 
       it('returns a query result for default parameters', async () => {
-        const result = await ArcModelEvents.RestApi.list(document.body);
+        const result = await ArcModelEvents.RestApi.list(et);
         assert.typeOf(result, 'object', 'result is an object');
         assert.typeOf(result.nextPageToken, 'string', 'has page token');
         assert.typeOf(result.items, 'array', 'has response items');
@@ -457,33 +499,35 @@ describe('RestApiModel', () => {
       });
 
       it('respects "limit" parameter', async () => {
-        const result = await ArcModelEvents.RestApi.list(document.body, {
+        const result = await ArcModelEvents.RestApi.list(et, {
           limit: 5,
         });
         assert.lengthOf(result.items, 5);
       });
 
       it('respects "nextPageToken" parameter', async () => {
-        const result1 = await ArcModelEvents.RestApi.list(document.body, {
+        const result1 = await ArcModelEvents.RestApi.list(et, {
           limit: 10,
         });
-        const result2 = await ArcModelEvents.RestApi.list(document.body, {
+        const result2 = await ArcModelEvents.RestApi.list(et, {
           nextPageToken: result1.nextPageToken,
         });
         assert.lengthOf(result2.items, 20);
       });
 
       it('does not set "nextPageToken" when no more results', async () => {
-        const result1 = await ArcModelEvents.RestApi.list(document.body, {
+        const result1 = await ArcModelEvents.RestApi.list(et, {
           limit: 40,
         });
-        const result2 = await ArcModelEvents.RestApi.list(document.body, {
+        const result2 = await ArcModelEvents.RestApi.list(et, {
           nextPageToken: result1.nextPageToken,
         });
         assert.isUndefined(result2.nextPageToken);
       });
 
       it('ignores the event when cancelled', async () => {
+        instance.unlisten(et);
+        instance.listen(window);
         document.body.addEventListener(ArcModelEventTypes.RestApi.list, function f(e) {
           e.preventDefault();
           document.body.removeEventListener(ArcModelEventTypes.RestApi.list, f);
@@ -494,19 +538,19 @@ describe('RestApiModel', () => {
           detail: { result: undefined },
         });
         document.body.dispatchEvent(e);
+        instance.unlisten(window);
+        instance.listen(et);
         assert.isUndefined(e.detail.result);
       });
     });
 
-    describe(`${ArcModelEventTypes.destroy} event`, () => {
+    describe(`The DB destroy event`, () => {
       /** @type RestApiModel */
       let instance;
       /** @type Element */
       let et;
       beforeEach(async () => {
-        // @ts-ignore
-        await store.insertApis({
-          size: 10,
+        await store.insertApis(10, {
           versionSize: 1,
         });
         et = await etFixture();
@@ -515,11 +559,14 @@ describe('RestApiModel', () => {
       });
 
       afterEach(() => store.destroyApisAll());
+      afterEach(() => {
+        instance.unlisten(et);
+      });
 
       it('clears index data', async () => {
         const indexBefore = await store.getDatastoreApiIndexData();
         assert.lengthOf(indexBefore, 10, 'has index data');
-        await ArcModelEvents.destroy(document.body, ['rest-apis']);
+        await ArcModelEvents.destroy(et, ['rest-apis']);
         const index = await store.getDatastoreApiIndexData();
         assert.lengthOf(index, 0, 'index is cleared');
       });
@@ -527,7 +574,7 @@ describe('RestApiModel', () => {
       it('clears api data store', async () => {
         const indexBefore = await store.getDatastoreHostApiData();
         assert.lengthOf(indexBefore, 10, 'has api data');
-        await ArcModelEvents.destroy(document.body, ['rest-apis']);
+        await ArcModelEvents.destroy(et, ['rest-apis']);
         const index = await store.getDatastoreHostApiData();
         assert.lengthOf(index, 0, 'api is cleared');
       });
@@ -535,19 +582,21 @@ describe('RestApiModel', () => {
       it('clears on "all" store', async () => {
         const indexBefore = await store.getDatastoreHostApiData();
         assert.lengthOf(indexBefore, 10, 'has api data');
-        await ArcModelEvents.destroy(document.body, ['all']);
+        await ArcModelEvents.destroy(et, ['all']);
         const index = await store.getDatastoreHostApiData();
         assert.lengthOf(index, 0, 'api is cleared');
       });
 
       it('dispatches store clear events', async () => {
         const spy = sinon.spy();
-        instance.addEventListener(ArcModelEventTypes.destroyed, spy);
-        await ArcModelEvents.destroy(document.body, ['rest-apis']);
+        et.addEventListener(ArcModelEventTypes.destroyed, spy);
+        await ArcModelEvents.destroy(et, ['rest-apis']);
         assert.equal(spy.callCount, 2);
       });
 
       it('ignores the event when cancelled', async () => {
+        instance.unlisten(et);
+        instance.listen(window);
         document.body.addEventListener(ArcModelEventTypes.destroyed, function f(e) {
           e.preventDefault();
           document.body.removeEventListener(ArcModelEventTypes.destroyed, f);
@@ -558,6 +607,8 @@ describe('RestApiModel', () => {
           detail: { result: undefined },
         });
         document.body.dispatchEvent(e);
+        instance.unlisten(window);
+        instance.listen(et);
         assert.isUndefined(e.detail.result);
       });
     });

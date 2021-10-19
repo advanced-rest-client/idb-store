@@ -1,5 +1,6 @@
-import {  assert } from '@open-wc/testing';
+import { assert } from '@open-wc/testing';
 import { ArcMock } from '@advanced-rest-client/arc-mock';
+import 'pouchdb/dist/pouchdb.js';
 import {
   normalizeRequest,
   findUndeletedRevision,

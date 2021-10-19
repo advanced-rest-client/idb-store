@@ -88,7 +88,7 @@ describe('RestApiModel', () => {
 
       it('dispatches change event', async () => {
         const spy = sinon.spy();
-        instance.addEventListener(ArcModelEventTypes.RestApi.State.update, spy);
+        et.addEventListener(ArcModelEventTypes.RestApi.State.update, spy);
         await instance.updateIndex(entity);
         assert.isTrue(spy.calledOnce);
       });
@@ -136,7 +136,7 @@ describe('RestApiModel', () => {
 
       it('dispatches change event', async () => {
         const spy = sinon.spy();
-        instance.addEventListener(ArcModelEventTypes.RestApi.State.dataUpdate, spy);
+        et.addEventListener(ArcModelEventTypes.RestApi.State.dataUpdate, spy);
         await instance.updateData(entity);
         assert.isTrue(spy.calledOnce);
       });
@@ -153,10 +153,7 @@ describe('RestApiModel', () => {
         et = await etFixture();
         instance = new RestApiModel();
         instance.listen(et);
-        // @ts-ignore
-        const result = await store.insertApis({
-          size: 1,
-        });
+        const result = await store.insertApis(1);
         dataEntities = /** @type ARCRestApi[] */ (result[1]);
       });
 
@@ -185,10 +182,7 @@ describe('RestApiModel', () => {
         et = await etFixture();
         instance = new RestApiModel();
         instance.listen(et);
-        // @ts-ignore
-        items = /** @type ARCRestApiIndex[] */ (generator.generateApiIndexList({
-          size: 10,
-        }));
+        items = generator.restApi.apiIndexList(10);
       });
 
       after(() => store.destroyApisAll());
@@ -207,7 +201,7 @@ describe('RestApiModel', () => {
 
       it('dispatches change event', async () => {
         const spy = sinon.spy();
-        instance.addEventListener(ArcModelEventTypes.RestApi.State.update, spy);
+        et.addEventListener(ArcModelEventTypes.RestApi.State.update, spy);
         await instance.updateIndexBatch(items);
         assert.equal(spy.callCount, items.length);
       });
@@ -268,7 +262,7 @@ describe('RestApiModel', () => {
 
       it('dispatches index change event', async () => {
         const spy = sinon.spy();
-        instance.addEventListener(ArcModelEventTypes.RestApi.State.update, spy);
+        et.addEventListener(ArcModelEventTypes.RestApi.State.update, spy);
         await instance.removeVersion(indexEntity._id, dataEntity.version);
         assert.isTrue(spy.calledOnce);
       });
@@ -342,7 +336,7 @@ describe('RestApiModel', () => {
 
       it('dispatches index change event', async () => {
         const spy = sinon.spy();
-        instance.addEventListener(ArcModelEventTypes.RestApi.State.delete, spy);
+        et.addEventListener(ArcModelEventTypes.RestApi.State.delete, spy);
         await instance.delete(indexEntity._id);
         assert.isTrue(spy.calledOnce);
       });
@@ -355,9 +349,7 @@ describe('RestApiModel', () => {
       let et;
 
       beforeEach(async () => {
-        // @ts-ignore
-        await store.insertApis({
-          size: 30,
+        await store.insertApis(30, {
           versionSize: 1,
         });
         et = await etFixture();

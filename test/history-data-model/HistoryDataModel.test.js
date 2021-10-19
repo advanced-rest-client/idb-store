@@ -1,7 +1,7 @@
 /* eslint-disable prefer-template */
 import { fixture, assert, oneEvent } from '@open-wc/testing';
 import { ArcMock } from '@advanced-rest-client/arc-mock';
-import { ArcModelEventTypes, TransportEvents, TransportEventTypes } from '@advanced-rest-client/events';
+import { ArcModelEventTypes, TransportEvents } from '@advanced-rest-client/events';
 import { MockedStore } from '../../index.js';
 import { RequestModel } from '../../src/RequestModel.js';
 import {
@@ -142,8 +142,8 @@ describe('HistoryDataModel', () => {
       et = await etFixture();
       instance = new HistoryDataModel();
       instance.listen(et);
-      request = generator.http.transportRequest();
-      response = generator.http.response.arcResponse({ timings: true, ssl: true, redirects: true,  });
+      request = generator.http.transportRequest({ payload: { force: true } });
+      response = generator.http.response.arcResponse({ timings: true, ssl: true, redirects: true, noBody: false });
       model = await instance[createHistoryDataModel](request, response);
     });
 
@@ -313,6 +313,7 @@ describe('HistoryDataModel', () => {
     let response = /** @type Response */ (null);
     let source = /** @type ARCHistoryRequest */ (null);
     beforeEach(async () => {
+      et = await etFixture();
       requestModel = new RequestModel();
       instance = new HistoryDataModel();
       requestModel.listen(et);
@@ -347,7 +348,7 @@ describe('HistoryDataModel', () => {
     });
   });
 
-  describe(`${TransportEventTypes.response} event`, () => {
+  describe(`the response event`, () => {
     /** @type HistoryDataModel */
     let instance;
     /** @type RequestModel */
@@ -358,6 +359,7 @@ describe('HistoryDataModel', () => {
     let response = /** @type Response */ (null);
     let source = /** @type ARCHistoryRequest */ (null);
     beforeEach(async () => {
+      et = await etFixture();
       requestModel = new RequestModel();
       instance = new HistoryDataModel();
       requestModel.listen(et);
@@ -378,14 +380,14 @@ describe('HistoryDataModel', () => {
     }
 
     it('stores history request', async () => {
-      TransportEvents.response(document.body, 'test-id', source, request, response);
+      TransportEvents.response(et, 'test-id', source, request, response);
       const e = /** @type ARCRequestUpdatedEvent */ (await oneEvent(window, ArcModelEventTypes.Request.State.update));
       const { item } = e.changeRecord;
       assert.equal(item.url, source.url);
     });
 
     it('stores history-data entity', async () => {
-      TransportEvents.response(document.body, 'test-id', source, request, response);
+      TransportEvents.response(et, 'test-id', source, request, response);
       await oneEvent(window, ArcModelEventTypes.Request.State.update);
       const items = await getAll();
       assert.lengthOf(items, 1);

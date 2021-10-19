@@ -29,6 +29,10 @@ describe('<host-rules-model>', () => {
         instance.listen(et);
       });
 
+      afterEach(() => {
+        instance.unlisten(et);
+      });
+
       it('returns a change record', async () => {
         const item = generator.hostRules.rule();
         const result = await instance.update(item);
@@ -60,7 +64,7 @@ describe('<host-rules-model>', () => {
 
       it('dispatches change event', async () => {
         const spy = sinon.spy();
-        instance.addEventListener(ArcModelEventTypes.HostRules.State.update, spy);
+        et.addEventListener(ArcModelEventTypes.HostRules.State.update, spy);
         const hr = generator.hostRules.rule();
         await instance.update(hr);
         assert.isTrue(spy.calledOnce);
@@ -68,7 +72,7 @@ describe('<host-rules-model>', () => {
 
       it('change event has a change record', async () => {
         const spy = sinon.spy();
-        instance.addEventListener(ArcModelEventTypes.HostRules.State.update, spy);
+        et.addEventListener(ArcModelEventTypes.HostRules.State.update, spy);
         const hr = generator.hostRules.rule();
         await instance.update(hr);
         // @ts-ignore
@@ -94,6 +98,10 @@ describe('<host-rules-model>', () => {
         const hr = generator.hostRules.rule();
         const record = await instance.update(hr);
         dataObj = record.item;
+      });
+
+      afterEach(() => {
+        instance.unlisten(et);
       });
 
       it('Reads project object by id only', async () => {
@@ -128,6 +136,10 @@ describe('<host-rules-model>', () => {
         dataObj = record.item;
       });
 
+      afterEach(() => {
+        instance.unlisten(et);
+      });
+
       it('removes object from the datastore', async () => {
         await instance.delete(dataObj._id, dataObj._rev);
         let thrown = false;
@@ -141,14 +153,14 @@ describe('<host-rules-model>', () => {
 
       it('dispatches the state event', async () => {
         const spy = sinon.spy();
-        instance.addEventListener(ArcModelEventTypes.HostRules.State.delete, spy);
+        et.addEventListener(ArcModelEventTypes.HostRules.State.delete, spy);
         await instance.delete(dataObj._id, dataObj._rev);
         assert.isTrue(spy.calledOnce);
       });
 
       it('has change record on the state event', async () => {
         const spy = sinon.spy();
-        instance.addEventListener(ArcModelEventTypes.HostRules.State.delete, spy);
+        et.addEventListener(ArcModelEventTypes.HostRules.State.delete, spy);
         await instance.delete(dataObj._id, dataObj._rev);
         const { id, rev } = spy.args[0][0];
 
@@ -159,7 +171,8 @@ describe('<host-rules-model>', () => {
     });
 
     describe('list()', () => {
-      afterEach(() => store.destroyHostRules());
+      before(() => store.insertHostRules());
+      after(() => store.destroyHostRules());
 
       /** @type {HostRulesModel} */
       let instance;
@@ -169,7 +182,10 @@ describe('<host-rules-model>', () => {
         et = await etFixture();
         instance = new HostRulesModel();
         instance.listen(et);
-        await store.insertHostRules();
+      });
+
+      afterEach(() => {
+        instance.unlisten(et);
       });
 
       it('returns a query result for default parameters', async () => {
@@ -221,6 +237,10 @@ describe('<host-rules-model>', () => {
         instance = new HostRulesModel();
         instance.listen(et);
         data = generator.hostRules.rules();
+      });
+
+      afterEach(() => {
+        instance.unlisten(et);
       });
 
       it('inserts data to the store', async () => {

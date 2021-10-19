@@ -23,18 +23,23 @@ describe('ArcDataImport', () => {
 
   describe('handleNormalizedFileData()', () => {
     /** @type ArcDataImport */
-    let element;
+    let instance;
     /** @type Element */
     let et;
     beforeEach(async () => {
       et = await etFixture();
-      element = new ArcDataImport(et);
+      instance = new ArcDataImport(et);
+      instance.listen();
+    });
+
+    afterEach(() => {
+      instance.unlisten();
     });
 
     it('throws when no data', () => {
       assert.throws(() => {
         // @ts-ignore
-        element.handleNormalizedFileData();
+        instance.handleNormalizedFileData();
       });
     });
 
@@ -42,7 +47,7 @@ describe('ArcDataImport', () => {
       const spy = sinon.spy();
       et.addEventListener(WorkspaceEventTypes.appendRequest, spy);
       const request = DataHelper.generateSingleRequestImport();
-      element.handleNormalizedFileData(request);
+      instance.handleNormalizedFileData(request);
       assert.isTrue(spy.called);
     });
 
@@ -50,7 +55,7 @@ describe('ArcDataImport', () => {
       const spy = sinon.spy();
       et.addEventListener(WorkspaceEventTypes.appendExport, spy);
       const data = DataHelper.generateProjectImportOpen();
-      element.handleNormalizedFileData(data);
+      instance.handleNormalizedFileData(data);
       assert.isTrue(spy.called, 'the event is called');
       assert.deepEqual(spy.args[0][0].detail.data, data);
     });
@@ -59,7 +64,7 @@ describe('ArcDataImport', () => {
       const spy = sinon.spy();
       et.addEventListener(WorkspaceEventTypes.appendRequest, spy);
       const request = DataHelper.generateSingleRequestImport();
-      element.handleNormalizedFileData(request);
+      instance.handleNormalizedFileData(request);
       assert.isUndefined(spy.args[0][0].detail.request.key);
       assert.isUndefined(spy.args[0][0].detail.request.kind);
     });
@@ -68,7 +73,7 @@ describe('ArcDataImport', () => {
       const spy = sinon.spy();
       et.addEventListener(WorkspaceEventTypes.appendRequest, spy);
       const request = DataHelper.generateSingleRequestImport();
-      element.handleNormalizedFileData(request);
+      instance.handleNormalizedFileData(request);
       assert.equal(spy.args[0][0].detail.request._id, '11013905-9b5a-49d9-adc8-f76ec3ead2f1');
     });
 
@@ -76,7 +81,7 @@ describe('ArcDataImport', () => {
       const spy = sinon.spy();
       et.addEventListener(WorkspaceEventTypes.appendRequest, spy);
       const request = DataHelper.generateSingleRequestImport();
-      element.handleNormalizedFileData(request, { driveId: 'test' });
+      instance.handleNormalizedFileData(request, { driveId: 'test' });
       assert.equal(spy.args[0][0].detail.request.driveId, 'test');
     });
 
@@ -84,7 +89,7 @@ describe('ArcDataImport', () => {
       const spy = sinon.spy();
       et.addEventListener(DataImportEventTypes.inspect, spy);
       const request = DataHelper.generateMultiRequestImport();
-      element.handleNormalizedFileData(request);
+      instance.handleNormalizedFileData(request);
       assert.isTrue(spy.called);
       assert.deepEqual(spy.args[0][0].detail.data, request);
     });
@@ -92,18 +97,23 @@ describe('ArcDataImport', () => {
 
   describe('[normalizeHandler]', () => {
     /** @type ArcDataImport */
-    let element;
+    let instance;
     /** @type Element */
     let et;
     beforeEach(async () => {
       et = await etFixture();
-      element = new ArcDataImport(et);
+      instance = new ArcDataImport(et);
+      instance.listen();
+    });
+
+    afterEach(() => {
+      instance.unlisten();
     });
 
     it('calls normalizeImportData() with arguments', async () => {
-      const spy = sinon.spy(element, 'normalizeImportData');
+      const spy = sinon.spy(instance, 'normalizeImportData');
       const data = DataHelper.generateArcImportFile();
-      await ImportEvents.normalize(document.body, data);
+      await ImportEvents.normalize(et, data);
       assert.isTrue(spy.calledOnce);
       const [expData] = spy.args[0];
       assert.deepEqual(expData, data, 'data argument is set');
@@ -112,7 +122,7 @@ describe('ArcDataImport', () => {
     it('throws when no data argument', async () => {
       let thrown = false;
       try {
-        await ImportEvents.normalize(document.body, undefined);
+        await ImportEvents.normalize(et, undefined);
       } catch (e) {
         thrown = true;
       }
@@ -120,27 +130,32 @@ describe('ArcDataImport', () => {
     });
 
     it('does nothing when the event is cancelled', async () => {
-      const spy = sinon.spy(element, 'normalizeImportData');
+      const spy = sinon.spy(instance, 'normalizeImportData');
       const data = DataHelper.generateArcImportFile();
-      const target = document.createElement('span');
-      document.body.appendChild(target);
-      target.addEventListener(DataImportEventTypes.normalize, function f(e) {
+      instance.unlisten();
+      instance.eventsTarget = window;
+      instance.listen();
+      document.body.addEventListener(DataImportEventTypes.normalize, function f(e) {
         e.preventDefault();
       });
-      await ImportEvents.normalize(target, data);
-      document.body.removeChild(target);
+      await ImportEvents.normalize(document.body, data);
       assert.isFalse(spy.called);
     });
   });
 
   describe('[importHandler]', () => {
     /** @type ArcDataImport */
-    let element;
+    let instance;
     /** @type Element */
     let et;
     beforeEach(async () => {
       et = await etFixture();
-      element = new ArcDataImport(et);
+      instance = new ArcDataImport(et);
+      instance.listen();
+    });
+
+    afterEach(() => {
+      instance.unlisten();
     });
 
     after(async () => {
@@ -148,9 +163,9 @@ describe('ArcDataImport', () => {
     });
 
     it('calls storeData() with arguments', async () => {
-      const spy = sinon.spy(element, 'storeData');
+      const spy = sinon.spy(instance, 'storeData');
       const data = DataHelper.generateMultiRequestImport();
-      await ImportEvents.dataImport(document.body, data);
+      await ImportEvents.dataImport(et, data);
       assert.isTrue(spy.calledOnce);
       const [expData] = spy.args[0];
       assert.deepEqual(expData, data, 'data argument is set');
@@ -159,7 +174,7 @@ describe('ArcDataImport', () => {
     it('throws when no data argument', async () => {
       let thrown = false;
       try {
-        await ImportEvents.dataImport(document.body, undefined);
+        await ImportEvents.dataImport(et, undefined);
       } catch (e) {
         thrown = true;
       }
@@ -167,33 +182,38 @@ describe('ArcDataImport', () => {
     });
 
     it('does nothing when the event is cancelled', async () => {
-      const spy = sinon.spy(element, 'storeData');
+      const spy = sinon.spy(instance, 'storeData');
       const data = DataHelper.generateMultiRequestImport();
-      const target = document.createElement('span');
-      document.body.appendChild(target);
-      target.addEventListener(DataImportEventTypes.dataImport, function f(e) {
+      instance.unlisten();
+      instance.eventsTarget = window;
+      instance.listen();
+      document.body.addEventListener(DataImportEventTypes.dataImport, function f(e) {
         e.preventDefault();
       });
-      await ImportEvents.dataImport(target, data);
-      document.body.removeChild(target);
+      await ImportEvents.dataImport(document.body, data);
       assert.isFalse(spy.called);
     });
   });
 
   describe('[processFileHandler]', () => {
     /** @type ArcDataImport */
-    let element;
+    let instance;
     /** @type Element */
     let et;
     beforeEach(async () => {
       et = await etFixture();
-      element = new ArcDataImport(et);
+      instance = new ArcDataImport(et);
+      instance.listen();
+    });
+
+    afterEach(() => {
+      instance.unlisten();
     });
 
     it('calls processFileData() with arguments', async () => {
-      const spy = sinon.spy(element, 'processFileData');
+      const spy = sinon.spy(instance, 'processFileData');
       const data = DataHelper.generateArcImportFile();
-      await ImportEvents.processFile(document.body, data);
+      await ImportEvents.processFile(et, data);
       assert.isTrue(spy.calledOnce);
       const [expData] = spy.args[0];
       assert.deepEqual(expData, data, 'data argument is set');
@@ -202,7 +222,7 @@ describe('ArcDataImport', () => {
     it('throws when no data argument', async () => {
       let thrown = false;
       try {
-        await ImportEvents.processFile(document.body, undefined);
+        await ImportEvents.processFile(et, undefined);
       } catch (e) {
         thrown = true;
       }
@@ -210,33 +230,38 @@ describe('ArcDataImport', () => {
     });
 
     it('does nothing when the event is cancelled', async () => {
-      const spy = sinon.spy(element, 'processFileData');
+      const spy = sinon.spy(instance, 'processFileData');
       const data = DataHelper.generateArcImportFile();
-      const target = document.createElement('span');
-      document.body.appendChild(target);
-      target.addEventListener(DataImportEventTypes.processFile, function f(e) {
+      instance.unlisten();
+      instance.eventsTarget = window;
+      instance.listen();
+      document.body.addEventListener(DataImportEventTypes.processFile, function f(e) {
         e.preventDefault();
       });
-      await ImportEvents.processFile(target, data);
-      document.body.removeChild(target);
+      await ImportEvents.processFile(document.body, data);
       assert.isFalse(spy.called);
     });
   });
 
   describe('[processDataHandler]', () => {
     /** @type ArcDataImport */
-    let element;
+    let instance;
     /** @type Element */
     let et;
     beforeEach(async () => {
       et = await etFixture();
-      element = new ArcDataImport(et);
+      instance = new ArcDataImport(et);
+      instance.listen();
+    });
+
+    afterEach(() => {
+      instance.unlisten();
     });
 
     it('calls processFileData() with arguments', async () => {
-      const spy = sinon.spy(element, 'processData');
+      const spy = sinon.spy(instance, 'processData');
       const data = DataHelper.generateMultiRequestImport();
-      await ImportEvents.processData(document.body, data);
+      await ImportEvents.processData(et, data);
       assert.isTrue(spy.calledOnce);
       const [expData] = spy.args[0];
       assert.deepEqual(expData, data, 'data argument is set');
@@ -245,7 +270,7 @@ describe('ArcDataImport', () => {
     it('throws when no data argument', async () => {
       let thrown = false;
       try {
-        await ImportEvents.processData(document.body, undefined);
+        await ImportEvents.processData(et, undefined);
       } catch (e) {
         thrown = true;
       }
@@ -253,42 +278,47 @@ describe('ArcDataImport', () => {
     });
 
     it('does nothing when the event is cancelled', async () => {
-      const spy = sinon.spy(element, 'processData');
+      const spy = sinon.spy(instance, 'processData');
       const data = DataHelper.generateMultiRequestImport();
-      const target = document.createElement('span');
-      document.body.appendChild(target);
-      target.addEventListener(DataImportEventTypes.processData, function f(e) {
+      instance.unlisten();
+      instance.eventsTarget = window;
+      instance.listen();
+      document.body.addEventListener(DataImportEventTypes.processData, function f(e) {
         e.preventDefault();
       });
-      await ImportEvents.processData(target, data);
-      document.body.removeChild(target);
+      await ImportEvents.processData(document.body, data);
       assert.isFalse(spy.called);
     });
   });
 
   describe('processData()', () => {
     /** @type ArcDataImport */
-    let element;
+    let instance;
     /** @type Element */
     let et;
     beforeEach(async () => {
       et = await etFixture();
-      element = new ArcDataImport(et);
+      instance = new ArcDataImport(et);
+      instance.listen();
+    });
+
+    afterEach(() => {
+      instance.unlisten();
     });
 
     it('calls normalizeImportData() with the argument', async () => {
-      const spy = sinon.spy(element, 'normalizeImportData');
+      const spy = sinon.spy(instance, 'normalizeImportData');
       const data = DataHelper.generateArcImportFile();
-      await element.processData(data);
+      await instance.processData(data);
       assert.isTrue(spy.calledOnce);
       const [expData] = spy.args[0];
       assert.deepEqual(expData, data, 'data argument is set');
     });
 
     it('calls handleNormalizedFileData() with normalized data', async () => {
-      const spy = sinon.spy(element, 'handleNormalizedFileData');
+      const spy = sinon.spy(instance, 'handleNormalizedFileData');
       const data = DataHelper.generateArcImportFile();
-      await element.processData(data);
+      await instance.processData(data);
       assert.isTrue(spy.calledOnce);
       const [argData] = spy.args[0];
       assert.equal(argData.kind, 'ARC#Import');
@@ -297,12 +327,17 @@ describe('ArcDataImport', () => {
 
   describe('storeData()', () => {
     /** @type ArcDataImport */
-    let element;
+    let instance;
     /** @type Element */
     let et;
     beforeEach(async () => {
       et = await etFixture();
-      element = new ArcDataImport(et);
+      instance = new ArcDataImport(et);
+      instance.listen();
+    });
+
+    afterEach(() => {
+      instance.unlisten();
     });
 
     after(async () => {
@@ -312,7 +347,7 @@ describe('ArcDataImport', () => {
     it('throws when no argument', async () => {
       let thrown = false;
       try {
-        await element.storeData(undefined);
+        await instance.storeData(undefined);
       } catch (e) {
         thrown = true;
       }
@@ -323,7 +358,7 @@ describe('ArcDataImport', () => {
       let thrown = false;
       try {
         // @ts-ignore
-        await element.storeData({});
+        await instance.storeData({});
       } catch (e) {
         thrown = true;
       }
@@ -332,7 +367,7 @@ describe('ArcDataImport', () => {
 
     it('imports data into the store', async () => {
       const object = DataHelper.generateMultiRequestImport();
-      await element.storeData(object);
+      await instance.storeData(object);
       const imported = await store.getDatastoreRequestData();
       const r1 = imported.find((i) => i._id === '11013905-9b5a-49d9-adc8-f76ec3ead2f1');
       const r2 = imported.find((i) => i._id === '20013905-9b5a-49d9-adc8-f76ec3ead2f1');
@@ -342,9 +377,9 @@ describe('ArcDataImport', () => {
     });
 
     it('calls [notifyIndexer]', async () => {
-      const spy = sinon.spy(element, notifyIndexer);
+      const spy = sinon.spy(instance, notifyIndexer);
       const object = DataHelper.generateMultiRequestImport();
-      await element.storeData(object);
+      await instance.storeData(object);
       assert.isTrue(spy.calledOnce);
     });
 
@@ -352,36 +387,41 @@ describe('ArcDataImport', () => {
       const spy = sinon.spy();
       et.addEventListener(DataImportEventTypes.dataImported, spy);
       const object = DataHelper.generateMultiRequestImport();
-      await element.storeData(object);
+      await instance.storeData(object);
       assert.isTrue(spy.calledOnce);
     });
   });
 
   describe('[notifyIndexer]()', () => {
-    /** @type ArcDataImport */
-    let element;
-    /** @type Element */
-    let et;
     let saved;
     let history;
+    /** @type ArcDataImport */
+    let instance;
+    /** @type Element */
+    let et;
     beforeEach(async () => {
       et = await etFixture();
-      element = new ArcDataImport(et);
+      instance = new ArcDataImport(et);
+      instance.listen();
       saved = [{ id: 1, type: 'saved', url: 'https://domain.com' }];
       history = [{ id: 2, type: 'history', url: 'https://api.com' }];
+    });
+
+    afterEach(() => {
+      instance.unlisten();
     });
 
     it('Dispatches the event', () => {
       const spy = sinon.spy();
       et.addEventListener(ArcModelEventTypes.UrlIndexer.update, spy);
-      element[notifyIndexer](saved, history);
+      instance[notifyIndexer](saved, history);
       assert.isTrue(spy.called);
     });
 
     it('passes "saved" indexes only', () => {
       const spy = sinon.spy();
       et.addEventListener(ArcModelEventTypes.UrlIndexer.update, spy);
-      element[notifyIndexer](saved, []);
+      instance[notifyIndexer](saved, []);
       const data = spy.args[0][0].requests;
       assert.typeOf(data, 'array');
       assert.lengthOf(data, 1);
@@ -390,7 +430,7 @@ describe('ArcDataImport', () => {
     it('Passes "history" indexes only', () => {
       const spy = sinon.spy();
       et.addEventListener(ArcModelEventTypes.UrlIndexer.update, spy);
-      element[notifyIndexer](undefined, history);
+      instance[notifyIndexer](undefined, history);
       const data = spy.args[0][0].requests;
       assert.typeOf(data, 'array');
       assert.lengthOf(data, 1);
@@ -399,19 +439,24 @@ describe('ArcDataImport', () => {
     it('Event is not dispatched when no indexes', () => {
       const spy = sinon.spy();
       et.addEventListener(ArcModelEventTypes.UrlIndexer.update, spy);
-      element[notifyIndexer]([], []);
+      instance[notifyIndexer]([], []);
       assert.isFalse(spy.called);
     });
   });
 
   describe('normalizeImportData()', () => {
     /** @type ArcDataImport */
-    let element;
+    let instance;
     /** @type Element */
     let et;
     beforeEach(async () => {
       et = await etFixture();
-      element = new ArcDataImport(et);
+      instance = new ArcDataImport(et);
+      instance.listen();
+    });
+
+    afterEach(() => {
+      instance.unlisten();
     });
 
     after(async () => {
@@ -420,41 +465,46 @@ describe('ArcDataImport', () => {
 
     it('normalizes import object', async () => {
       const postmanData = await DataHelper.getFile('postman/postman-data.json');
-      const result = await element.normalizeImportData(postmanData);
+      const result = await instance.normalizeImportData(postmanData);
       assert.equal(result.version, 'postman-backup');
       assert.equal(result.kind, 'ARC#Import');
     });
 
     it('handles file object', async () => {
       const data = DataHelper.generateArcImportFile();
-      const result = await element.normalizeImportData(data);
+      const result = await instance.normalizeImportData(data);
       assert.equal(result.version, 'unknown');
       assert.equal(result.kind, 'ARC#Import');
     });
 
     it('calls [decryptIfNeeded] on text content', async () => {
-      const spy = sinon.spy(element, decryptIfNeeded);
+      const spy = sinon.spy(instance, decryptIfNeeded);
       const data = DataHelper.generateArcImportFile();
-      await element.normalizeImportData(data);
+      await instance.normalizeImportData(data);
       assert.isTrue(spy.calledOnce);
     });
 
     it('does not call [decryptIfNeeded] on object content', async () => {
-      const spy = sinon.spy(element, decryptIfNeeded);
+      const spy = sinon.spy(instance, decryptIfNeeded);
       const data = DataHelper.generateMultiRequestImport();
-      await element.normalizeImportData(data);
+      await instance.normalizeImportData(data);
       assert.isFalse(spy.called);
     });
   });
 
   describe('processFileData()', () => {
     /** @type ArcDataImport */
-    let element;
+    let instance;
     /** @type Element */
     let et;
     beforeEach(async () => {
       et = await etFixture();
-      element = new ArcDataImport(et);
+      instance = new ArcDataImport(et);
+      instance.listen();
+    });
+
+    afterEach(() => {
+      instance.unlisten();
     });
 
     function apiParserHandler(e) {
@@ -479,8 +529,8 @@ describe('ArcDataImport', () => {
       it(`Calls [notifyApiParser]() for file type ${type}`, () => {
         const file = /** @type File */ ({ type });
         window.addEventListener(RestApiEventTypes.processFile, apiParserHandler);
-        const spy = sinon.spy(element, notifyApiParser);
-        element.processFileData(file);
+        const spy = sinon.spy(instance, notifyApiParser);
+        instance.processFileData(file);
         assert.isTrue(spy.called);
         assert.deepEqual(spy.args[0][0], file);
       });
@@ -492,8 +542,8 @@ describe('ArcDataImport', () => {
       it(`Calls [notifyApiParser]() for file with extension ${name}`, () => {
         const file = /** @type File */ ({ type: '', name });
         window.addEventListener(RestApiEventTypes.processFile, apiParserHandler);
-        const spy = sinon.spy(element, notifyApiParser);
-        element.processFileData(file);
+        const spy = sinon.spy(instance, notifyApiParser);
+        instance.processFileData(file);
         assert.isTrue(spy.called);
         assert.deepEqual(spy.args[0][0], file);
       });
@@ -501,7 +551,7 @@ describe('ArcDataImport', () => {
 
     it('returns a promise', () => {
       const file = DataHelper.generateArcImportFile();
-      const result = element.processFileData(file);
+      const result = instance.processFileData(file);
       assert.typeOf(result.then, 'function');
       return result;
     });
@@ -510,7 +560,7 @@ describe('ArcDataImport', () => {
       const file = DataHelper.generateArcImportFile();
       const spy = sinon.spy();
       et.addEventListener(ProcessEventTypes.loadingstart, spy);
-      await element.processFileData(file);
+      await instance.processFileData(file);
       assert.isTrue(spy.called);
       assert.equal(spy.args[0][0].detail.message, 'Processing file data');
     });
@@ -518,15 +568,15 @@ describe('ArcDataImport', () => {
     it('calls toString() on Electron buffer', async () => {
       const file = DataHelper.generateElectronBuffer();
       const spy = sinon.spy(file, 'toString');
-      await element.processFileData(file);
+      await instance.processFileData(file);
       assert.isTrue(spy.called);
     });
 
     it('calls [notifyApiParser]() for unknown file with RAML spec', async () => {
       const file = DataHelper.generateRamlUnknownFile();
       window.addEventListener(RestApiEventTypes.processFile, apiParserHandler);
-      const spy = sinon.spy(element, notifyApiParser);
-      await element.processFileData(file);
+      const spy = sinon.spy(instance, notifyApiParser);
+      await instance.processFileData(file);
       assert.isTrue(spy.called);
       assert.deepEqual(spy.args[0][0].size, file.size);
     });
@@ -534,8 +584,8 @@ describe('ArcDataImport', () => {
     it('Calls [notifyApiParser]() for unknown file with OAS 2 JSON spec', async () => {
       const file = DataHelper.generateOas2JsonUnknownFile();
       window.addEventListener(RestApiEventTypes.processFile, apiParserHandler);
-      const spy = sinon.spy(element, notifyApiParser);
-      await element.processFileData(file);
+      const spy = sinon.spy(instance, notifyApiParser);
+      await instance.processFileData(file);
       assert.isTrue(spy.called);
       assert.deepEqual(spy.args[0][0].size, file.size);
     });
@@ -544,7 +594,7 @@ describe('ArcDataImport', () => {
       const file = DataHelper.generateJsonErrorFile();
       let message;
       try {
-        await element.processFileData(file);
+        await instance.processFileData(file);
       } catch (e) {
         message = e.message;
       }
@@ -555,7 +605,7 @@ describe('ArcDataImport', () => {
       const file = DataHelper.generateRamlUnknownFile();
       let message;
       try {
-        await element.processFileData(file);
+        await instance.processFileData(file);
       } catch (e) {
         message = e.message;
       }
@@ -567,7 +617,7 @@ describe('ArcDataImport', () => {
       const file = DataHelper.generateRamlUnknownFile();
       let message;
       try {
-        await element.processFileData(file);
+        await instance.processFileData(file);
       } catch (e) {
         message = e.message;
       }
@@ -586,7 +636,7 @@ describe('ArcDataImport', () => {
       window.addEventListener(RestApiEventTypes.processFile, apiParserHandler);
       const file = DataHelper.generateOas2JsonUnknownFile();
       try {
-        await element.processFileData(file);
+        await instance.processFileData(file);
       } catch (e) {
         // ...
       }
@@ -596,8 +646,8 @@ describe('ArcDataImport', () => {
 
     it('calls normalizeImportData()', async () => {
       const file = DataHelper.generateArcImportFile();
-      const spy = sinon.spy(element, 'normalizeImportData');
-      await element.processFileData(file);
+      const spy = sinon.spy(instance, 'normalizeImportData');
+      await instance.processFileData(file);
       assert.isTrue(spy.called);
       assert.deepEqual(spy.args[0][0], {
         createdAt: '2019-02-02T21:58:25.467Z',
@@ -618,7 +668,7 @@ describe('ArcDataImport', () => {
       et.addEventListener(ProcessEventTypes.loadingstop, spy);
       const file = DataHelper.generateArcImportFile();
       try {
-        await element.processFileData(file);
+        await instance.processFileData(file);
       } catch (e) {
         // ...
       }
@@ -628,10 +678,10 @@ describe('ArcDataImport', () => {
     });
 
     it('Calls handleNormalizedFileData() with processed data', async () => {
-      const spy = sinon.spy(element, 'handleNormalizedFileData');
+      const spy = sinon.spy(instance, 'handleNormalizedFileData');
       const file = DataHelper.generateArcImportFile();
       try {
-        await element.processFileData(file);
+        await instance.processFileData(file);
       } catch (e) {
         // ...
       }
@@ -641,10 +691,10 @@ describe('ArcDataImport', () => {
 
     it('passes options to handleNormalizedFileData()', async () => {
       const opts = { driveId: 'test' };
-      const spy = sinon.spy(element, 'handleNormalizedFileData');
+      const spy = sinon.spy(instance, 'handleNormalizedFileData');
       const file = DataHelper.generateArcImportFile();
       try {
-        await element.processFileData(file, opts);
+        await instance.processFileData(file, opts);
       } catch (e) {
         // ...
       }
@@ -655,25 +705,30 @@ describe('ArcDataImport', () => {
 
   describe('[decryptIfNeeded]()', () => {
     /** @type ArcDataImport */
-    let element;
+    let instance;
     /** @type Element */
     let et;
     beforeEach(async () => {
       et = await etFixture();
-      element = new ArcDataImport(et);
+      instance = new ArcDataImport(et);
+      instance.listen();
+    });
+
+    afterEach(() => {
+      instance.unlisten();
     });
 
     it('ignores when content has no encryption header', async () => {
       const spy = sinon.spy();
       et.addEventListener(EncryptionEventTypes.decrypt, spy);
-      await element[decryptIfNeeded]('test data');
+      await instance[decryptIfNeeded]('test data');
       assert.isFalse(spy.called)
     });
 
     it('dispatches decrypt event', async () => {
       const spy = sinon.spy();
       et.addEventListener(EncryptionEventTypes.decrypt, spy);
-      await element[decryptIfNeeded]('aes\ntest data');
+      await instance[decryptIfNeeded]('aes\ntest data');
       assert.isTrue(spy.called)
       assert.equal(spy.args[0][0].data, 'test data');
     });

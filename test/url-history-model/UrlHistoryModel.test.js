@@ -238,7 +238,7 @@ describe('UrlHistoryModel', () => {
     it('dispatches change event', async () => {
       const entity = generator.urls.url();
       const spy = sinon.spy();
-      instance.addEventListener(ArcModelEventTypes.UrlHistory.State.update, spy);
+      et.addEventListener(ArcModelEventTypes.UrlHistory.State.update, spy);
       await instance.addUrl(entity._id);
       assert.isTrue(spy.calledOnce);
     });
@@ -301,19 +301,20 @@ describe('UrlHistoryModel', () => {
     it('dispatches change event', async () => {
       const entity = generator.urls.url();
       const spy = sinon.spy();
-      instance.addEventListener(ArcModelEventTypes.UrlHistory.State.update, spy);
+      et.addEventListener(ArcModelEventTypes.UrlHistory.State.update, spy);
       await instance.update(entity);
       assert.isTrue(spy.calledOnce);
     });
   });
 
   describe('query()', () => {
-    let created = /** @type ARCUrlHistory[] */ (null)
+    /** @type ARCUrlHistory[] */
+    let created;
     before(async () => {
       const et = await etFixture();
       const instance = new UrlHistoryModel();
       instance.listen(et);
-      created = /** @type ARCUrlHistory[] */ (generator.urls.urls(30));
+      created = generator.urls.urls(30);
       await instance.db.bulkDocs(created);
     });
 
@@ -334,7 +335,8 @@ describe('UrlHistoryModel', () => {
     it('returns a list of matched results', async () => {
       const result = await instance.query('http://');
       assert.typeOf(result, 'array', 'result is an array');
-      assert.lengthOf(result, 30, 'has all results');
+      const httpUrls = created.filter(i => i.url.startsWith('http://'));
+      assert.lengthOf(result, httpUrls.length, 'has all results');
     });
 
     it('matches the URL', async () => {
@@ -426,14 +428,14 @@ describe('UrlHistoryModel', () => {
 
     it('dispatches the state event', async () => {
       const spy = sinon.spy();
-      instance.addEventListener(ArcModelEventTypes.UrlHistory.State.delete, spy);
+      et.addEventListener(ArcModelEventTypes.UrlHistory.State.delete, spy);
       await instance.delete(dataObj._id);
       assert.isTrue(spy.calledOnce);
     });
 
     it('has change record on the state event', async () => {
       const spy = sinon.spy();
-      instance.addEventListener(ArcModelEventTypes.UrlHistory.State.delete, spy);
+      et.addEventListener(ArcModelEventTypes.UrlHistory.State.delete, spy);
       await instance.delete(dataObj._id);
       const { id, rev } = spy.args[0][0];
 

@@ -9,7 +9,7 @@ import { ArcBaseModel, notifyDestroyed, deletemodelHandler } from '../../src/Arc
 
 describe('ArcBaseModel', () => {
   const STORE_NAME = 'todo-list';
-  
+
   async function etFixture() {
     return fixture(`<div></div>`);
   }
@@ -22,7 +22,7 @@ describe('ArcBaseModel', () => {
 
     it('sets the reviews limit in constructor', async () => {
       const instance = new ArcBaseModel(STORE_NAME, 21);
-      assert.equal(instance.revsLimit, 2);
+      assert.equal(instance.revsLimit, 21);
     });
 
     it('uses the default event target', async () => {
@@ -100,8 +100,12 @@ describe('ArcBaseModel', () => {
   describe('_handleException()', () => {
     /** @type ArcBaseModel */
     let instance;
+    /** @type Element */
+    let et;
     beforeEach(async () => {
+      et = await etFixture();
       instance = new ArcBaseModel(STORE_NAME);
+      instance.listen(et);
     });
 
     it('Throws the error', () => {
@@ -116,14 +120,14 @@ describe('ArcBaseModel', () => {
 
     it(`dispatches ${TelemetryEventTypes.exception} event`, () => {
       const spy = sinon.spy();
-      instance.addEventListener(TelemetryEventTypes.exception, spy);
+      et.addEventListener(TelemetryEventTypes.exception, spy);
       instance._handleException(new Error('test'), true);
       assert.isTrue(spy.called);
     });
 
     it('the event has exception details', () => {
       const spy = sinon.spy();
-      instance.addEventListener(TelemetryEventTypes.exception, spy);
+      et.addEventListener(TelemetryEventTypes.exception, spy);
       instance._handleException(new Error('test'), true);
       assert.isTrue(spy.called);
       const { detail } = spy.args[0][0];
@@ -133,7 +137,7 @@ describe('ArcBaseModel', () => {
 
     it('Serializes non-error object', () => {
       const spy = sinon.spy();
-      instance.addEventListener(TelemetryEventTypes.exception, spy);
+      et.addEventListener(TelemetryEventTypes.exception, spy);
       instance._handleException({ test: true }, true);
       assert.isTrue(spy.called);
       const { detail } = spy.args[0][0];
@@ -142,24 +146,28 @@ describe('ArcBaseModel', () => {
   });
 
   describe('[notifyDestroyed]()', () => {
+    const storeName = 'test-store';
     /** @type ArcBaseModel */
     let instance;
-    const storeName = 'test-store';
+    /** @type Element */
+    let et;
 
     beforeEach(async () => {
+      et = await etFixture();
       instance = new ArcBaseModel(STORE_NAME);
+      instance.listen(et);
     });
 
     it('dispatches a custom event', () => {
       const spy = sinon.spy();
-      instance.addEventListener(ArcModelEventTypes.destroyed, spy);
+      et.addEventListener(ArcModelEventTypes.destroyed, spy);
       instance[notifyDestroyed](storeName);
       assert.isTrue(spy.called);
     });
 
     it('contains datastore on the detail object', () => {
       const spy = sinon.spy();
-      instance.addEventListener(ArcModelEventTypes.destroyed, spy);
+      et.addEventListener(ArcModelEventTypes.destroyed, spy);
       instance[notifyDestroyed](storeName);
       const e = /** @type ARCModelStateDeleteEvent */ (spy.args[0][0]);
       assert.equal(e.store, storeName);
@@ -167,7 +175,7 @@ describe('ArcBaseModel', () => {
 
     it('is not cancelable', () => {
       const spy = sinon.spy();
-      instance.addEventListener(ArcModelEventTypes.destroyed, spy);
+      et.addEventListener(ArcModelEventTypes.destroyed, spy);
       instance[notifyDestroyed](storeName);
       const e = /** @type ARCModelStateDeleteEvent */ (spy.args[0][0]);
       assert.isFalse(e.cancelable);
@@ -175,7 +183,7 @@ describe('ArcBaseModel', () => {
 
     it('bubbles', () => {
       const spy = sinon.spy();
-      instance.addEventListener(ArcModelEventTypes.destroyed, spy);
+      et.addEventListener(ArcModelEventTypes.destroyed, spy);
       instance[notifyDestroyed](storeName);
       const e = /** @type ARCModelStateDeleteEvent */ (spy.args[0][0]);
       assert.isTrue(e.bubbles);
@@ -183,7 +191,7 @@ describe('ArcBaseModel', () => {
 
     it('is composed', () => {
       const spy = sinon.spy();
-      instance.addEventListener(ArcModelEventTypes.destroyed, spy);
+      et.addEventListener(ArcModelEventTypes.destroyed, spy);
       instance[notifyDestroyed](storeName);
       const e = /** @type ARCModelStateDeleteEvent */ (spy.args[0][0]);
       assert.isTrue(e.composed);
@@ -193,8 +201,12 @@ describe('ArcBaseModel', () => {
   describe('deleteModel()', () => {
     /** @type ArcBaseModel */
     let instance;
+    /** @type Element */
+    let et;
     beforeEach(async () => {
+      et = await etFixture();
       instance = new ArcBaseModel(STORE_NAME);
+      instance.listen(et);
     });
 
     it('deletes the model', async () => {
@@ -203,7 +215,7 @@ describe('ArcBaseModel', () => {
 
     it('dispatches the state event', async () => {
       const spy = sinon.spy();
-      instance.addEventListener(ArcModelEventTypes.destroyed, spy);
+      et.addEventListener(ArcModelEventTypes.destroyed, spy);
       await instance.deleteModel();
       assert.isTrue(spy.called);
       const e = /** @type ARCModelStateDeleteEvent */ (spy.args[0][0]);
@@ -231,7 +243,7 @@ describe('ArcBaseModel', () => {
       instance = new ArcBaseModel(STORE_NAME);
     });
 
-    it('Returns true when event is canceled', () => {
+    it('returns true when event is canceled', () => {
       const e = new CustomEvent('test', {
         cancelable: true,
       });
@@ -241,25 +253,13 @@ describe('ArcBaseModel', () => {
       assert.isTrue(result);
     });
 
-    it('Returns true when event is cancelable', () => {
+    it('returns true when event is cancelable', () => {
       const e = new CustomEvent('test');
       const result = instance._eventCancelled(e);
       assert.isTrue(result);
     });
 
-    it('Returns true when event is dispatched on current instance', () => {
-      const e = {
-        cancelable: true,
-        composedPath() {
-          return [instance];
-        },
-      };
-      // @ts-ignore
-      const result = instance._eventCancelled(e);
-      assert.isTrue(result);
-    });
-
-    it('Returns false otherwise', () => {
+    it('returns false otherwise', () => {
       const e = new CustomEvent('test', {
         cancelable: true,
       });
@@ -272,11 +272,17 @@ describe('ArcBaseModel', () => {
   describe('[deletemodelHandler]()', () => {
     /** @type ArcBaseModel */
     let instance;
+    /** @type Element */
+    let et;
     beforeEach(async () => {
+      et = await etFixture();
       instance = new ArcBaseModel(STORE_NAME);
+      instance.listen(et);
     });
 
     it('is ignored when cancelled', async () => {
+      instance.unlisten(et);
+      instance.listen(window);
       document.body.addEventListener(ArcModelEventTypes.destroy, function f(e) {
         e.preventDefault();
         document.body.removeEventListener(ArcModelEventTypes.destroy, f);
@@ -284,24 +290,25 @@ describe('ArcBaseModel', () => {
       const e = new ARCModelDeleteEvent(['test']);
       document.body.dispatchEvent(e);
       instance[deletemodelHandler](e);
+      instance.unlisten(window);
       assert.isUndefined(e.detail.result);
     });
 
     it('is ignored for different name', async () => {
       const e = new ARCModelDeleteEvent(['test']);
-      document.body.dispatchEvent(e);
+      et.dispatchEvent(e);
       assert.isEmpty(e.detail.result);
     });
 
     it('is ignored when no store names', () => {
       const e = new ARCModelDeleteEvent([]);
-      document.body.dispatchEvent(e);
+      et.dispatchEvent(e);
       assert.isUndefined(e.detail.result);
     });
 
     it('is processed with current name', async () => {
       const e = new ARCModelDeleteEvent([STORE_NAME]);
-      document.body.dispatchEvent(e);
+      et.dispatchEvent(e);
       assert.typeOf(e.detail.result, 'array');
       assert.lengthOf(e.detail.result, 1);
       return e.detail.result[0];
@@ -309,7 +316,7 @@ describe('ArcBaseModel', () => {
 
     it('handles the event', async () => {
       const spy = sinon.spy(instance, 'deleteModel');
-      await ArcModelEvents.destroy(document.body, [STORE_NAME]);
+      await ArcModelEvents.destroy(et, [STORE_NAME]);
       assert.isTrue(spy.calledOnce);
     });
   });

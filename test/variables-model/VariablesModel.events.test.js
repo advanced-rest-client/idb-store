@@ -16,7 +16,7 @@ describe('VariablesModel', () => {
   }
 
   describe('events API', () => {
-    describe(`${ArcModelEventTypes.Environment.update} event`, () => {
+    describe(`The update event`, () => {
       /** @type VariablesModel */
       let instance;
       /** @type Element */
@@ -36,7 +36,7 @@ describe('VariablesModel', () => {
           name: 'test1',
           created: 1234,
         };
-        const result = await ArcModelEvents.Environment.update(document.body, entity);
+        const result = await ArcModelEvents.Environment.update(et, entity);
         assert.typeOf(result, 'object', 'returns an object');
         assert.typeOf(result.id, 'string', 'has an id');
         assert.typeOf(result.rev, 'string', 'has a rev');
@@ -49,7 +49,7 @@ describe('VariablesModel', () => {
           name: 'test2',
           created: 1234,
         };
-        const result = await ArcModelEvents.Environment.update(document.body, entity);
+        const result = await ArcModelEvents.Environment.update(et, entity);
         const { item } = result;
         assert.typeOf(item, 'object', 'is an object');
         assert.typeOf(item._id, 'string', 'has an id');
@@ -62,10 +62,10 @@ describe('VariablesModel', () => {
         const entity = {
           name: 'test3',
         };
-        const r1 = await ArcModelEvents.Environment.update(document.body, entity);
+        const r1 = await ArcModelEvents.Environment.update(et, entity);
         entity._id = r1.id;
         entity.name = 'other';
-        const r2 = await ArcModelEvents.Environment.update(document.body, entity);
+        const r2 = await ArcModelEvents.Environment.update(et, entity);
         assert.equal(r2.id, r1.id, 'has the id');
         assert.typeOf(r2.rev, 'string', 'has a new rev');
         assert.notEqual(r2.rev, r1.rev, 'has updated rev');
@@ -76,11 +76,11 @@ describe('VariablesModel', () => {
         const entity = {
           name: 'test4',
         };
-        const r1 = await ArcModelEvents.Environment.update(document.body, entity);
+        const r1 = await ArcModelEvents.Environment.update(et, entity);
         entity._id = r1.id;
         entity._rev = r1.rev;
         entity.name = 'other';
-        const r2 = await ArcModelEvents.Environment.update(document.body, entity);
+        const r2 = await ArcModelEvents.Environment.update(et, entity);
         assert.equal(r2.id, r1.id, 'has the id');
         assert.typeOf(r2.rev, 'string', 'has a new rev');
         assert.notEqual(r2.rev, r1.rev, 'has updated rev');
@@ -92,9 +92,9 @@ describe('VariablesModel', () => {
         try {
           const entity = {
             created: 1234,
+            name: undefined,
           };
-          // @ts-ignore
-          await ArcModelEvents.Environment.update(document.body, entity);
+          await ArcModelEvents.Environment.update(et, entity);
         } catch (e) {
           thrown = true;
         }
@@ -102,9 +102,11 @@ describe('VariablesModel', () => {
       });
 
       it('ignores cancelled events', async () => {
+        instance.unlisten(et);
+        instance.listen(window);
         document.body.addEventListener(ArcModelEventTypes.Environment.update, function f(e) {
-          e.preventDefault();
           document.body.removeEventListener(ArcModelEventTypes.Environment.update, f);
+          e.preventDefault();
         });
         const e = new CustomEvent(ArcModelEventTypes.Environment.update, {
           bubbles: true,
@@ -113,11 +115,13 @@ describe('VariablesModel', () => {
           detail: { result: undefined },
         });
         document.body.dispatchEvent(e);
+        instance.unlisten(window);
+        instance.listen(et);
         assert.isUndefined(e.detail.result);
       });
     });
 
-    describe(`${ArcModelEventTypes.Environment.read} event`, () => {
+    describe(`The read event`, () => {
       /** @type VariablesModel */
       let instance;
       /** @type Element */
@@ -144,17 +148,19 @@ describe('VariablesModel', () => {
       });
 
       it('reads existing environment by its name', async () => {
-        const result = await ArcModelEvents.Environment.read(document.body, created.name);
+        const result = await ArcModelEvents.Environment.read(et, created.name);
         assert.typeOf(result, 'object');
         assert.equal(result.name, created.name);
       });
 
       it('returns undefined if the environment is unknown', async () => {
-        const result = await ArcModelEvents.Environment.read(document.body, 'some random value');
+        const result = await ArcModelEvents.Environment.read(et, 'some random value');
         assert.isUndefined(result);
       });
 
       it('ignores cancelled events', async () => {
+        instance.unlisten(et);
+        instance.listen(window);
         document.body.addEventListener(ArcModelEventTypes.Environment.read, function f(e) {
           e.preventDefault();
           document.body.removeEventListener(ArcModelEventTypes.Environment.read, f);
@@ -166,11 +172,13 @@ describe('VariablesModel', () => {
           detail: { result: undefined },
         });
         document.body.dispatchEvent(e);
+        instance.unlisten(window);
+        instance.listen(et);
         assert.isUndefined(e.detail.result);
       });
     });
 
-    describe(`${ArcModelEventTypes.Environment.delete} event`, () => {
+    describe(`The delete event`, () => {
       /** @type VariablesModel */
       let instance;
       /** @type Element */
@@ -196,13 +204,13 @@ describe('VariablesModel', () => {
       });
 
       it('removes an entity from the data store', async () => {
-        await ArcModelEvents.Environment.delete(document.body, created._id);
-        const result = await ArcModelEvents.Environment.read(document.body, created.name);
+        await ArcModelEvents.Environment.delete(et, created._id);
+        const result = await ArcModelEvents.Environment.read(et, created.name);
         assert.isUndefined(result);
       });
 
       it('returns a delete record', async () => {
-        const result = await ArcModelEvents.Environment.delete(document.body, created._id);
+        const result = await ArcModelEvents.Environment.delete(et, created._id);
         assert.equal(result.id, created._id, 'has the id');
         assert.typeOf(result.rev, 'string', 'has a rev');
         assert.notEqual(result.rev, created._rev, 'has updated rev');
@@ -210,15 +218,15 @@ describe('VariablesModel', () => {
 
       it('dispatches the change event', async () => {
         const spy = sinon.spy();
-        instance.addEventListener(ArcModelEventTypes.Environment.State.delete, spy);
-        await ArcModelEvents.Environment.delete(document.body, created._id);
+        et.addEventListener(ArcModelEventTypes.Environment.State.delete, spy);
+        await ArcModelEvents.Environment.delete(et, created._id);
         assert.isTrue(spy.called);
       });
 
       it('throws when no id', async () => {
         let thrown = false;
         try {
-          await ArcModelEvents.Environment.delete(document.body, undefined);
+          await ArcModelEvents.Environment.delete(et, undefined);
         } catch (e) {
           thrown = true;
         }
@@ -229,7 +237,7 @@ describe('VariablesModel', () => {
         const variable = generator.variables.variable();
         variable.environment = created.name;
         const response1 = await instance.variableDb.post(variable);
-        await ArcModelEvents.Environment.delete(document.body, created._id);
+        await ArcModelEvents.Environment.delete(et, created._id);
         let thrown = false;
         try {
           await instance.variableDb.get(response1.id)
@@ -240,10 +248,12 @@ describe('VariablesModel', () => {
       });
 
       it('ignores unknown environments', async () => {
-        await ArcModelEvents.Environment.delete(document.body, 'other id');
+        await ArcModelEvents.Environment.delete(et, 'other id');
       });
 
       it('ignores cancelled events', async () => {
+        instance.unlisten(et);
+        instance.listen(window);
         document.body.addEventListener(ArcModelEventTypes.Environment.delete, function f(e) {
           e.preventDefault();
           document.body.removeEventListener(ArcModelEventTypes.Environment.delete, f);
@@ -255,11 +265,13 @@ describe('VariablesModel', () => {
           detail: { result: undefined },
         });
         document.body.dispatchEvent(e);
+        instance.unlisten(window);
+        instance.listen(et);
         assert.isUndefined(e.detail.result);
       });
     });
 
-    describe(`${ArcModelEventTypes.Environment.list} event`, () => {
+    describe(`The list event`, () => {
       before(async () => {
         const model = new VariablesModel();
         const items = Array(30).fill(0).map(() => ({
@@ -283,7 +295,7 @@ describe('VariablesModel', () => {
       });
 
       it('returns a query result for default parameters', async () => {
-        const result = await ArcModelEvents.Environment.list(document.body);
+        const result = await ArcModelEvents.Environment.list(et);
         assert.typeOf(result, 'object', 'result is an object');
         assert.typeOf(result.nextPageToken, 'string', 'has page token');
         assert.typeOf(result.items, 'array', 'has response items');
@@ -291,34 +303,34 @@ describe('VariablesModel', () => {
       });
 
       it('respects "limit" parameter', async () => {
-        const result = await ArcModelEvents.Environment.list(document.body, {
+        const result = await ArcModelEvents.Environment.list(et, {
           limit: 5,
         });
         assert.lengthOf(result.items, 5);
       });
 
       it('respects "nextPageToken" parameter', async () => {
-        const result1 = await ArcModelEvents.Environment.list(document.body, {
+        const result1 = await ArcModelEvents.Environment.list(et, {
           limit: 10,
         });
-        const result2 = await ArcModelEvents.Environment.list(document.body, {
+        const result2 = await ArcModelEvents.Environment.list(et, {
           nextPageToken: result1.nextPageToken,
         });
         assert.lengthOf(result2.items, 20);
       });
 
       it('does not set "nextPageToken" when no more results', async () => {
-        const result1 = await ArcModelEvents.Environment.list(document.body, {
+        const result1 = await ArcModelEvents.Environment.list(et, {
           limit: 40,
         });
-        const result2 = await ArcModelEvents.Environment.list(document.body, {
+        const result2 = await ArcModelEvents.Environment.list(et, {
           nextPageToken: result1.nextPageToken,
         });
         assert.isUndefined(result2.nextPageToken);
       });
 
       it('returns all model list result', async () => {
-        const result = await ArcModelEvents.Environment.list(document.body, {
+        const result = await ArcModelEvents.Environment.list(et, {
           readall: true,
         });
         assert.typeOf(result, 'object', 'is an object');
@@ -326,6 +338,8 @@ describe('VariablesModel', () => {
       });
 
       it('ignores cancelled events', async () => {
+        instance.unlisten(et);
+        instance.listen(window);
         document.body.addEventListener(ArcModelEventTypes.Environment.list, function f(e) {
           e.preventDefault();
           document.body.removeEventListener(ArcModelEventTypes.Environment.list, f);
@@ -337,11 +351,13 @@ describe('VariablesModel', () => {
           detail: { result: undefined },
         });
         document.body.dispatchEvent(e);
+        instance.unlisten(window);
+        instance.listen(et);
         assert.isUndefined(e.detail.result);
       });
     });
 
-    describe(`${ArcModelEventTypes.Variable.update} event`, () => {
+    describe(`The update event`, () => {
       /** @type VariablesModel */
       let instance;
       /** @type Element */
@@ -358,7 +374,7 @@ describe('VariablesModel', () => {
 
       it('returns the changelog', async () => {
         const entity = generator.variables.variable();
-        const result = await ArcModelEvents.Variable.update(document.body, entity);
+        const result = await ArcModelEvents.Variable.update(et, entity);
         assert.typeOf(result, 'object', 'returns an object');
         assert.typeOf(result.id, 'string', 'has an id');
         assert.typeOf(result.rev, 'string', 'has a rev');
@@ -368,7 +384,7 @@ describe('VariablesModel', () => {
 
       it('creates a new variable in the data store', async () => {
         const entity = generator.variables.variable();
-        const record = await ArcModelEvents.Variable.update(document.body, entity);
+        const record = await ArcModelEvents.Variable.update(et, entity);
         const result = await instance.variableDb.get(record.id);
         assert.typeOf(result, 'object');
         assert.equal(result.name, entity.name);
@@ -381,7 +397,7 @@ describe('VariablesModel', () => {
         delete entity.name;
         let thrown = false;
         try {
-          await ArcModelEvents.Variable.update(document.body, entity);
+          await ArcModelEvents.Variable.update(et, entity);
         } catch (e) {
           thrown = true;
         }
@@ -391,23 +407,25 @@ describe('VariablesModel', () => {
       it('ignores unknown id', async () => {
         const entity = generator.variables.variable();
         entity._id = 'some id';
-        const result = await ArcModelEvents.Variable.update(document.body, entity);
+        const result = await ArcModelEvents.Variable.update(et, entity);
         assert.typeOf(result, 'object', 'returns an object');
       });
 
       it('updated existing entity', async () => {
         const entity = generator.variables.variable();
-        const result1 = await ArcModelEvents.Variable.update(document.body, entity);
+        const result1 = await ArcModelEvents.Variable.update(et, entity);
         entity._id = result1.id;
         entity._rev = result1.rev;
         entity.value = 'other value';
-        const result2 = await ArcModelEvents.Variable.update(document.body, entity);
+        const result2 = await ArcModelEvents.Variable.update(et, entity);
         assert.notEqual(result2.rev, result1.rev, 'has different rev');
         assert.equal(result2.id, result1.id, 'has the same id');
         assert.equal(result2.item.value, 'other value', 'has other name');
       });
 
       it('ignores cancelled events', async () => {
+        instance.unlisten(et);
+        instance.listen(window);
         document.body.addEventListener(ArcModelEventTypes.Variable.update, function f(e) {
           e.preventDefault();
           document.body.removeEventListener(ArcModelEventTypes.Variable.update, f);
@@ -419,11 +437,13 @@ describe('VariablesModel', () => {
           detail: { result: undefined },
         });
         document.body.dispatchEvent(e);
+        instance.unlisten(window);
+        instance.listen(et);
         assert.isUndefined(e.detail.result);
       });
     });
 
-    describe(`${ArcModelEventTypes.Variable.set} event`, () => {
+    describe(`The set event`, () => {
       /** @type VariablesModel */
       let instance;
       /** @type Element */
@@ -446,7 +466,7 @@ describe('VariablesModel', () => {
       });
 
       it('creates a new variable', async () => {
-        const record = await ArcModelEvents.Variable.set(document.body, 'veryRandomVariable', 'with value');
+        const record = await ArcModelEvents.Variable.set(et, 'veryRandomVariable', 'with value');
         assert.typeOf(record, 'object', 'returns the change record');
         const result = await instance.variableDb.get(record.id);
         assert.typeOf(result, 'object', 'has created variable');
@@ -456,7 +476,7 @@ describe('VariablesModel', () => {
 
       it('updates existing variable', async () => {
         const { _id, name } = created[0];
-        const record = await ArcModelEvents.Variable.set(document.body, name, 'updated value');
+        const record = await ArcModelEvents.Variable.set(et, name, 'updated value');
         assert.typeOf(record, 'object', 'returns the change record');
         assert.equal(record.id, _id, 'updated the existing variable');
         const result = await instance.variableDb.get(_id);
@@ -464,7 +484,7 @@ describe('VariablesModel', () => {
       });
     });
 
-    describe(`${ArcModelEventTypes.Variable.delete} event`, () => {
+    describe(`The delete event`, () => {
       /** @type VariablesModel */
       let instance;
       /** @type Element */
@@ -474,10 +494,7 @@ describe('VariablesModel', () => {
         et = await etFixture();
         instance = new VariablesModel();
         instance.listen(et);
-        // @ts-ignore
-        created = await store.insertVariables({
-          size: 1,
-        });
+        created = await store.insertVariables(1);
       });
 
       afterEach(async () => {
@@ -487,7 +504,7 @@ describe('VariablesModel', () => {
       it('throws when no id', async () => {
         let thrown = false;
         try {
-          await ArcModelEvents.Variable.delete(document.body, undefined);
+          await ArcModelEvents.Variable.delete(et, undefined);
         } catch (e) {
           thrown = true;
         }
@@ -495,7 +512,7 @@ describe('VariablesModel', () => {
       });
 
       it('deletes a variable from the store', async () => {
-        await ArcModelEvents.Variable.delete(document.body, created[0]._id);
+        await ArcModelEvents.Variable.delete(et, created[0]._id);
         let thrown = false;
         try {
           await instance.variableDb.get(created[0]._id);
@@ -506,19 +523,21 @@ describe('VariablesModel', () => {
       });
 
       it('returns delete record', async () => {
-        const result = await ArcModelEvents.Variable.delete(document.body, created[0]._id);
+        const result = await ArcModelEvents.Variable.delete(et, created[0]._id);
         assert.equal(result.id, created[0]._id);
         assert.typeOf(result.rev, 'string');
       });
 
       it('dispatches the change event', async () => {
         const spy = sinon.spy();
-        instance.addEventListener(ArcModelEventTypes.Variable.State.delete, spy);
-        await ArcModelEvents.Variable.delete(document.body, created[0]._id);
+        et.addEventListener(ArcModelEventTypes.Variable.State.delete, spy);
+        await ArcModelEvents.Variable.delete(et, created[0]._id);
         assert.isTrue(spy.called);
       });
 
       it('ignores cancelled events', async () => {
+        instance.unlisten(et);
+        instance.listen(window);
         document.body.addEventListener(ArcModelEventTypes.Variable.delete, function f(e) {
           e.preventDefault();
           document.body.removeEventListener(ArcModelEventTypes.Variable.delete, f);
@@ -530,28 +549,27 @@ describe('VariablesModel', () => {
           detail: { result: undefined },
         });
         document.body.dispatchEvent(e);
+        instance.unlisten(window);
+        instance.listen(et);
         assert.isUndefined(e.detail.result);
       });
     });
 
-    describe(`${ArcModelEventTypes.Variable.list} event`, () => {
+    describe(`The list event`, () => {
       let created = /** @type ARCVariable[] */ (null);
       /** @type VariablesModel */
       let instance;
       /** @type Element */
       let et;
       beforeEach(async () => {
-        // @ts-ignore
-        created = await store.insertVariables({
-          size: 32,
-        });
+        created = await store.insertVariables(32);
         const entity = generator.variables.variable();
         entity.environment = created[0].environment;
         et = await etFixture();
         instance = new VariablesModel();
         instance.listen(et);
-        await ArcModelEvents.Variable.update(document.body, entity);
-        await ArcModelEvents.Variable.update(document.body, {
+        await ArcModelEvents.Variable.update(et, entity);
+        await ArcModelEvents.Variable.update(et, {
           environment: '',
           name: 'x',
           value: 'y',
@@ -564,7 +582,7 @@ describe('VariablesModel', () => {
       });
 
       it('returns a query result for default parameters', async () => {
-        const result = await ArcModelEvents.Variable.list(document.body, created[0].environment);
+        const result = await ArcModelEvents.Variable.list(et, created[0].environment);
         assert.typeOf(result, 'object', 'result is an object');
         assert.typeOf(result.nextPageToken, 'string', 'has page token');
         assert.typeOf(result.items, 'array', 'has response items');
@@ -572,49 +590,51 @@ describe('VariablesModel', () => {
       });
 
       it('respects "limit" parameter', async () => {
-        const result = await ArcModelEvents.Variable.list(document.body, created[0].environment, {
+        const result = await ArcModelEvents.Variable.list(et, created[0].environment, {
           limit: 3,
         });
         assert.isAtLeast(result.items.length, 2);
       });
 
       it('respects "nextPageToken" parameter', async () => {
-        const result1 = await ArcModelEvents.Variable.list(document.body, created[0].environment, {
+        const result1 = await ArcModelEvents.Variable.list(et, created[0].environment, {
           limit: 1,
         });
-        const result2 = await ArcModelEvents.Variable.list(document.body, created[0].environment, {
+        const result2 = await ArcModelEvents.Variable.list(et, created[0].environment, {
           nextPageToken: result1.nextPageToken,
         });
         assert.isAtLeast(result2.items.length, 1);
       });
 
       it('returns no results for unknown environment', async () => {
-        const result = await ArcModelEvents.Variable.list(document.body, 'some unknown environment');
+        const result = await ArcModelEvents.Variable.list(et, 'some unknown environment');
         assert.lengthOf(result.items, 0);
       });
 
       it('returns all results for an environment (readall)', async () => {
-        const result = await ArcModelEvents.Variable.list(document.body, created[0].environment, {
+        const result = await ArcModelEvents.Variable.list(et, created[0].environment, {
           readall: true,
         });
         assert.isAbove(result.items.length, 1);
       });
 
       it('is case insensitive (readall)', async () => {
-        const result = await ArcModelEvents.Variable.list(document.body, created[0].environment.toUpperCase(), {
+        const result = await ArcModelEvents.Variable.list(et, created[0].environment.toUpperCase(), {
           readall: true,
         });
         assert.isAbove(result.items.length, 1);
       });
 
       it('ignores variables without environment (readall)', async () => {
-        const result = await ArcModelEvents.Variable.list(document.body, '', {
+        const result = await ArcModelEvents.Variable.list(et, '', {
           readall: true,
         });
         assert.lengthOf(result.items, 0);
       });
 
       it('ignores cancelled events', async () => {
+        instance.unlisten(et);
+        instance.listen(window);
         document.body.addEventListener(ArcModelEventTypes.Variable.list, function f(e) {
           e.preventDefault();
           document.body.removeEventListener(ArcModelEventTypes.Variable.list, f);
@@ -626,11 +646,13 @@ describe('VariablesModel', () => {
           detail: { result: undefined },
         });
         document.body.dispatchEvent(e);
+        instance.unlisten(window);
+        instance.listen(et);
         assert.isUndefined(e.detail.result);
       });
     });
 
-    describe(`${ArcModelEventTypes.destroy} event`, () => {
+    describe(`The db destroy event`, () => {
       /** @type VariablesModel */
       let instance;
       /** @type Element */
@@ -645,27 +667,27 @@ describe('VariablesModel', () => {
       afterEach(() => store.destroyVariables());
 
       it('clears the data', async () => {
-        await ArcModelEvents.destroy(document.body, ['variables']);
+        await ArcModelEvents.destroy(et, ['variables']);
         const result = await store.getDatastoreVariablesData();
         assert.lengthOf(result, 0);
       });
 
       it('ignores other stores', async () => {
-        await ArcModelEvents.destroy(document.body, ['test store']);
+        await ArcModelEvents.destroy(et, ['test store']);
         const result = await store.getDatastoreVariablesData();
         assert.lengthOf(result, 25);
       });
 
       it('ignores no stores', async () => {
-        await ArcModelEvents.destroy(document.body, []);
+        await ArcModelEvents.destroy(et, []);
         const result = await store.getDatastoreVariablesData();
         assert.lengthOf(result, 25);
       });
 
       it('dispatches deleted state events', async () => {
         const spy = sinon.spy();
-        instance.addEventListener(ArcModelEventTypes.destroyed, spy);
-        await ArcModelEvents.destroy(document.body, ['variables']);
+        et.addEventListener(ArcModelEventTypes.destroyed, spy);
+        await ArcModelEvents.destroy(et, ['variables']);
         assert.equal(spy.callCount, 2);
       });
     });

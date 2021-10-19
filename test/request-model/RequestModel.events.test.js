@@ -22,7 +22,7 @@ describe('RequestModel Events API', () => {
   describe(`the read event`, () => {
     let requests = /** @type ARCSavedRequest[] */ (null);
     before(async () => {
-      const data = await store.http.savedData();
+      const data = await store.insertSaved();
       requests = data.requests;
     });
 
@@ -38,7 +38,13 @@ describe('RequestModel Events API', () => {
       instance.listen(et);
     });
 
+    afterEach(() => {
+      instance.unlisten(et);
+    });
+
     it('ignores cancelled events', async () => {
+      instance.unlisten(et);
+      instance.listen(window);
       document.body.addEventListener(ArcModelEventTypes.Request.read, function f(e) {
         e.preventDefault();
         document.body.removeEventListener(ArcModelEventTypes.Request.read, f);
@@ -54,16 +60,18 @@ describe('RequestModel Events API', () => {
       // @ts-ignore
       e.id = 'test123';
       document.body.dispatchEvent(e);
+      instance.unlisten(window);
+      instance.listen(et);
       assert.isUndefined(e.detail.result);
     });
 
     it('returns a request', async () => {
-      const result = await ArcModelEvents.Request.read(document.body, 'saved', requests[0]._id);
+      const result = await ArcModelEvents.Request.read(et, 'saved', requests[0]._id);
       assert.deepEqual(result, requests[0]);
     });
 
     it('adds computed midnight value', async () => {
-      const result = await ArcModelEvents.Request.read(document.body, 'saved', requests[0]._id);
+      const result = await ArcModelEvents.Request.read(et, 'saved', requests[0]._id);
       assert.typeOf(result.midnight, 'number');
     });
 
@@ -74,7 +82,7 @@ describe('RequestModel Events API', () => {
       request.name = 'xyz';
       const record = await instance.post('saved', request);
       request._rev = record.rev;
-      const result = await ArcModelEvents.Request.read(document.body, 'saved', requests[0]._id, {
+      const result = await ArcModelEvents.Request.read(et, 'saved', requests[0]._id, {
         rev,
       });
       // @ts-ignore
@@ -84,7 +92,7 @@ describe('RequestModel Events API', () => {
     it('throws when no id when constructing the event', async () => {
       let thrown = false;
       try {
-        await ArcModelEvents.Request.read(document.body, 'saved', undefined);
+        await ArcModelEvents.Request.read(et, 'saved', undefined);
       } catch (e) {
         thrown = true;
       }
@@ -102,7 +110,7 @@ describe('RequestModel Events API', () => {
         });
         // @ts-ignore
         e.requestType = 'saved';
-        document.body.dispatchEvent(e);
+        et.dispatchEvent(e);
         await e.detail.result;
       } catch (e) {
         thrown = true;
@@ -113,7 +121,7 @@ describe('RequestModel Events API', () => {
     it('throws when no requestType when constructing the event', async () => {
       let thrown = false;
       try {
-        await ArcModelEvents.Request.read(document.body, undefined, 'id');
+        await ArcModelEvents.Request.read(et, undefined, 'id');
       } catch (e) {
         thrown = true;
       }
@@ -131,7 +139,7 @@ describe('RequestModel Events API', () => {
         });
         // @ts-ignore
         e.id = 'test-id';
-        document.body.dispatchEvent(e);
+        et.dispatchEvent(e);
         await e.detail.result;
       } catch (e) {
         thrown = true;
@@ -142,7 +150,7 @@ describe('RequestModel Events API', () => {
     it('throws when no result', async () => {
       let thrown = false;
       try {
-        await ArcModelEvents.Request.read(document.body, 'saved', 'random-id');
+        await ArcModelEvents.Request.read(et, 'saved', 'random-id');
       } catch (e) {
         thrown = true;
       }
@@ -153,7 +161,7 @@ describe('RequestModel Events API', () => {
   describe(`the read bulk event`, () => {
     let requests = /** @type ARCSavedRequest[] */ (null);
     before(async () => {
-      const data = await store.http.savedData();
+      const data = await store.insertSaved();
       requests = data.requests;
     });
 
@@ -169,7 +177,13 @@ describe('RequestModel Events API', () => {
       instance.listen(et);
     });
 
+    afterEach(() => {
+      instance.unlisten(et);
+    });
+
     it('ignores cancelled events', async () => {
+      instance.unlisten(et);
+      instance.listen(window);
       document.body.addEventListener(ArcModelEventTypes.Request.readBulk, function f(e) {
         e.preventDefault();
         document.body.removeEventListener(ArcModelEventTypes.Request.readBulk, f);
@@ -185,16 +199,18 @@ describe('RequestModel Events API', () => {
       // @ts-ignore
       e.ids = ['test123'];
       document.body.dispatchEvent(e);
+      instance.unlisten(window);
+      instance.listen(et);
       assert.isUndefined(e.detail.result);
     });
 
     it('returns a list of requests', async () => {
-      const result = await ArcModelEvents.Request.readBulk(document.body, 'saved', [requests[0]._id, requests[1]._id]);
+      const result = await ArcModelEvents.Request.readBulk(et, 'saved', [requests[0]._id, requests[1]._id]);
       assert.deepEqual(result, [requests[0], requests[1]]);
     });
 
     it('adds computed midnight value', async () => {
-      const result = await ArcModelEvents.Request.readBulk(document.body, 'saved', [requests[0]._id, requests[1]._id]);
+      const result = await ArcModelEvents.Request.readBulk(et, 'saved', [requests[0]._id, requests[1]._id]);
       assert.typeOf(result[0].midnight, 'number');
       assert.typeOf(result[1].midnight, 'number');
     });
@@ -202,7 +218,7 @@ describe('RequestModel Events API', () => {
     it('throws when no ids when constructing the event', async () => {
       let thrown = false;
       try {
-        await ArcModelEvents.Request.readBulk(document.body, 'saved', undefined);
+        await ArcModelEvents.Request.readBulk(et, 'saved', undefined);
       } catch (e) {
         thrown = true;
       }
@@ -212,7 +228,7 @@ describe('RequestModel Events API', () => {
     it('throws when no requestType when constructing the event', async () => {
       let thrown = false;
       try {
-        await ArcModelEvents.Request.readBulk(document.body, undefined, ['id']);
+        await ArcModelEvents.Request.readBulk(et, undefined, ['id']);
       } catch (e) {
         thrown = true;
       }
@@ -230,7 +246,7 @@ describe('RequestModel Events API', () => {
         });
         // @ts-ignore
         e.requestType = 'saved';
-        document.body.dispatchEvent(e);
+        et.dispatchEvent(e);
         await e.detail.result;
       } catch (e) {
         thrown = true;
@@ -249,7 +265,7 @@ describe('RequestModel Events API', () => {
         });
         // @ts-ignore
         e.ids = [requests[0]._id, requests[1]._id];
-        document.body.dispatchEvent(e);
+        et.dispatchEvent(e);
         await e.detail.result;
       } catch (e) {
         thrown = true;
@@ -258,7 +274,7 @@ describe('RequestModel Events API', () => {
     });
 
     it('ignores missing requests', async () => {
-      const result = await ArcModelEvents.Request.readBulk(document.body, 'saved', [requests[0]._id, 'random-id']);
+      const result = await ArcModelEvents.Request.readBulk(et, 'saved', [requests[0]._id, 'random-id']);
       assert.lengthOf(result, 1);
     });
   });
@@ -279,7 +295,13 @@ describe('RequestModel Events API', () => {
       instance.listen(et);
     });
 
+    afterEach(() => {
+      instance.unlisten(et);
+    });
+
     it('ignores cancelled events', async () => {
+      instance.unlisten(et);
+      instance.listen(window);
       document.body.addEventListener(ArcModelEventTypes.Request.update, function f(e) {
         e.preventDefault();
         document.body.removeEventListener(ArcModelEventTypes.Request.update, f);
@@ -293,14 +315,16 @@ describe('RequestModel Events API', () => {
       // @ts-ignore
       e.requestType = 'saved';
       // @ts-ignore
-      e.request = generator.generateSavedItem();
+      e.request = generator.http.saved();
       document.body.dispatchEvent(e);
+      instance.unlisten(window);
+      instance.listen(et);
       assert.isUndefined(e.detail.result);
     });
 
     it('saves a "history" item', async () => {
       const request = generator.http.history();
-      const result = await ArcModelEvents.Request.update(document.body, 'history', request);
+      const result = await ArcModelEvents.Request.update(et, 'history', request);
       assert.typeOf(result, 'object', 'result is an object');
       assert.typeOf(result.id, 'string', 'has created ID');
       assert.typeOf(result.rev, 'string', 'has created rev');
@@ -311,7 +335,7 @@ describe('RequestModel Events API', () => {
 
     it('saves a "saved" item', async () => {
       const request = generator.http.saved();
-      const result = await ArcModelEvents.Request.update(document.body, 'saved', request);
+      const result = await ArcModelEvents.Request.update(et, 'saved', request);
       assert.typeOf(result, 'object', 'result is an object');
       assert.typeOf(result.id, 'string', 'has created ID');
       assert.typeOf(result.rev, 'string', 'has created rev');
@@ -324,7 +348,7 @@ describe('RequestModel Events API', () => {
       const request = generator.http.saved();
       let thrown = false;
       try {
-        await ArcModelEvents.Request.update(document.body, undefined, request);
+        await ArcModelEvents.Request.update(et, undefined, request);
       } catch (e) {
         thrown = true;
       }
@@ -341,8 +365,8 @@ describe('RequestModel Events API', () => {
           detail: { result: undefined },
         });
         // @ts-ignore
-        e.request = generator.generateSavedItem();
-        document.body.dispatchEvent(e);
+        e.request = generator.http.saved();
+        et.dispatchEvent(e);
         await e.detail.result;
       } catch (e) {
         thrown = true;
@@ -353,7 +377,7 @@ describe('RequestModel Events API', () => {
     it('throws when no request when constructing the event', async () => {
       let thrown = false;
       try {
-        await ArcModelEvents.Request.update(document.body, 'saved', undefined);
+        await ArcModelEvents.Request.update(et, 'saved', undefined);
       } catch (e) {
         thrown = true;
       }
@@ -371,7 +395,7 @@ describe('RequestModel Events API', () => {
         });
         // @ts-ignore
         e.requestType = 'saved';
-        document.body.dispatchEvent(e);
+        et.dispatchEvent(e);
         await e.detail.result;
       } catch (e) {
         thrown = true;
@@ -383,7 +407,7 @@ describe('RequestModel Events API', () => {
       const request = generator.http.saved();
       let thrown = false;
       try {
-        await ArcModelEvents.Request.update(document.body, 'unknown', request);
+        await ArcModelEvents.Request.update(et, 'unknown', request);
       } catch (e) {
         thrown = true;
       }
@@ -407,7 +431,13 @@ describe('RequestModel Events API', () => {
       instance.listen(et);
     });
 
+    afterEach(() => {
+      instance.unlisten(et);
+    });
+
     it('ignores cancelled events', async () => {
+      instance.unlisten(et);
+      instance.listen(window);
       document.body.addEventListener(ArcModelEventTypes.Request.updateBulk, function f(e) {
         e.preventDefault();
         document.body.removeEventListener(ArcModelEventTypes.Request.updateBulk, f);
@@ -423,12 +453,14 @@ describe('RequestModel Events API', () => {
       // @ts-ignore
       e.requests = generator.http.savedData();
       document.body.dispatchEvent(e);
+      instance.unlisten(window);
+      instance.listen(et);
       assert.isUndefined(e.detail.result);
     });
 
     it('saves a "history" item', async () => {
       const requests = generator.http.listHistory();
-      const result = await ArcModelEvents.Request.updateBulk(document.body, 'history', requests);
+      const result = await ArcModelEvents.Request.updateBulk(et, 'history', requests);
       assert.typeOf(result, 'array', 'result is an array');
       const [change] = result;
       assert.typeOf(change.id, 'string', 'has created ID');
@@ -442,7 +474,7 @@ describe('RequestModel Events API', () => {
       const generated = generator.http.savedData();
       // @ts-ignore
       const requests = /** @type ARCSavedRequest[] */ (generated.requests);
-      const result = await ArcModelEvents.Request.updateBulk(document.body, 'saved', requests);
+      const result = await ArcModelEvents.Request.updateBulk(et, 'saved', requests);
       assert.typeOf(result, 'array', 'result is an array');
       const [change] = result;
       assert.typeOf(change.id, 'string', 'has created ID');
@@ -456,7 +488,7 @@ describe('RequestModel Events API', () => {
       const requests = /** @type ARCSavedRequest[] */ (generator.http.savedData().requests);
       let thrown = false;
       try {
-        await ArcModelEvents.Request.updateBulk(document.body, undefined, requests);
+        await ArcModelEvents.Request.updateBulk(et, undefined, requests);
       } catch (e) {
         thrown = true;
       }
@@ -474,7 +506,7 @@ describe('RequestModel Events API', () => {
         });
         // @ts-ignore
         e.requests = generator.http.savedData();
-        document.body.dispatchEvent(e);
+        et.dispatchEvent(e);
         await e.detail.result;
       } catch (e) {
         thrown = true;
@@ -485,7 +517,7 @@ describe('RequestModel Events API', () => {
     it('throws when no requests when constructing the event', async () => {
       let thrown = false;
       try {
-        await ArcModelEvents.Request.updateBulk(document.body, 'saved', undefined);
+        await ArcModelEvents.Request.updateBulk(et, 'saved', undefined);
       } catch (e) {
         thrown = true;
       }
@@ -503,7 +535,7 @@ describe('RequestModel Events API', () => {
         });
         // @ts-ignore
         e.requestType = 'saved';
-        document.body.dispatchEvent(e);
+        et.dispatchEvent(e);
         await e.detail.result;
       } catch (e) {
         thrown = true;
@@ -536,7 +568,13 @@ describe('RequestModel Events API', () => {
       instance.listen(et);
     });
 
+    afterEach(() => {
+      instance.unlisten(et);
+    });
+
     it('ignores cancelled events', async () => {
+      instance.unlisten(et);
+      instance.listen(window);
       document.body.addEventListener(ArcModelEventTypes.Request.delete, function f(e) {
         e.preventDefault();
         document.body.removeEventListener(ArcModelEventTypes.Request.delete, f);
@@ -552,15 +590,17 @@ describe('RequestModel Events API', () => {
       // @ts-ignore
       e.requests = generator.http.savedData();
       document.body.dispatchEvent(e);
+      instance.unlisten(window);
+      instance.listen(et);
       assert.isUndefined(e.detail.result);
     });
 
     it('removes an item from the data store', async () => {
       const request = requests[0];
-      await ArcModelEvents.Request.delete(document.body, 'saved', request._id);
+      await ArcModelEvents.Request.delete(et, 'saved', request._id);
       let thrown = false;
       try {
-        await ArcModelEvents.Request.read(document.body, 'saved', request._id);
+        await ArcModelEvents.Request.read(et, 'saved', request._id);
       } catch (e) {
         thrown = true;
       }
@@ -571,7 +611,7 @@ describe('RequestModel Events API', () => {
       const request = requests[1];
       let thrown = false;
       try {
-        await ArcModelEvents.Request.delete(document.body, undefined, request._id);
+        await ArcModelEvents.Request.delete(et, undefined, request._id);
       } catch (e) {
         thrown = true;
       }
@@ -581,7 +621,7 @@ describe('RequestModel Events API', () => {
     it('throws when no entity in the data store', async () => {
       let thrown = false;
       try {
-        await ArcModelEvents.Request.delete(document.body, 'saved', 'random-id-123');
+        await ArcModelEvents.Request.delete(et, 'saved', 'random-id-123');
       } catch (e) {
         thrown = true;
       }
@@ -590,7 +630,7 @@ describe('RequestModel Events API', () => {
 
     it('returns delete record', async () => {
       const request = requests[1];
-      const record = await ArcModelEvents.Request.delete(document.body, 'saved', request._id);
+      const record = await ArcModelEvents.Request.delete(et, 'saved', request._id);
       assert.equal(record.id, request._id, 'has the id');
       assert.typeOf(record.rev, 'string', 'has a revision');
     });
@@ -606,7 +646,7 @@ describe('RequestModel Events API', () => {
         });
         // @ts-ignore
         e.requestType = 'saved';
-        document.body.dispatchEvent(e);
+        et.dispatchEvent(e);
         await e.detail.result;
       } catch (e) {
         thrown = true;
@@ -626,7 +666,7 @@ describe('RequestModel Events API', () => {
         });
         // @ts-ignore
         e.id = request._id;
-        document.body.dispatchEvent(e);
+        et.dispatchEvent(e);
         await e.detail.result;
       } catch (e) {
         thrown = true;
@@ -659,7 +699,13 @@ describe('RequestModel Events API', () => {
       instance.listen(et);
     });
 
+    afterEach(() => {
+      instance.unlisten(et);
+    });
+
     it('ignores cancelled events', async () => {
+      instance.unlisten(et);
+      instance.listen(window);
       document.body.addEventListener(ArcModelEventTypes.Request.deleteBulk, function f(e) {
         e.preventDefault();
         document.body.removeEventListener(ArcModelEventTypes.Request.deleteBulk, f);
@@ -675,15 +721,17 @@ describe('RequestModel Events API', () => {
       // @ts-ignore
       e.requests = generator.http.savedData();
       document.body.dispatchEvent(e);
+      instance.unlisten(window);
+      instance.listen(et);
       assert.isUndefined(e.detail.result);
     });
 
     it('removes items from the data store', async () => {
       const request = requests[0];
-      await ArcModelEvents.Request.deleteBulk(document.body, 'saved', [request._id]);
+      await ArcModelEvents.Request.deleteBulk(et, 'saved', [request._id]);
       let thrown = false;
       try {
-        await ArcModelEvents.Request.read(document.body, 'saved', request._id);
+        await ArcModelEvents.Request.read(et, 'saved', request._id);
       } catch (e) {
         thrown = true;
       }
@@ -694,7 +742,7 @@ describe('RequestModel Events API', () => {
       const request = requests[1];
       let thrown = false;
       try {
-        await ArcModelEvents.Request.deleteBulk(document.body, undefined, [request._id]);
+        await ArcModelEvents.Request.deleteBulk(et, undefined, [request._id]);
       } catch (e) {
         thrown = true;
       }
@@ -704,7 +752,7 @@ describe('RequestModel Events API', () => {
     it('throws when no ids', async () => {
       let thrown = false;
       try {
-        await ArcModelEvents.Request.deleteBulk(document.body, 'saved', undefined);
+        await ArcModelEvents.Request.deleteBulk(et, 'saved', undefined);
       } catch (e) {
         thrown = true;
       }
@@ -713,13 +761,13 @@ describe('RequestModel Events API', () => {
 
     it('ignores unknown entities', async () => {
       const request = requests[2];
-      const result = await ArcModelEvents.Request.deleteBulk(document.body, 'saved', [request._id, 'random-id-123']);
+      const result = await ArcModelEvents.Request.deleteBulk(et, 'saved', [request._id, 'random-id-123']);
       assert.lengthOf(result, 1);
     });
 
     it('returns delete record', async () => {
       const request = requests[3];
-      const result = await ArcModelEvents.Request.deleteBulk(document.body, 'saved', [request._id, 'random-id-123']);
+      const result = await ArcModelEvents.Request.deleteBulk(et, 'saved', [request._id, 'random-id-123']);
       const [record] = result;
       assert.equal(record.id, request._id, 'has the id');
       assert.typeOf(record.rev, 'string', 'has a revision');
@@ -736,7 +784,7 @@ describe('RequestModel Events API', () => {
         });
         // @ts-ignore
         e.requestType = 'saved';
-        document.body.dispatchEvent(e);
+        et.dispatchEvent(e);
         await e.detail.result;
       } catch (e) {
         thrown = true;
@@ -756,7 +804,7 @@ describe('RequestModel Events API', () => {
         });
         // @ts-ignore
         e.id = [request._id];
-        document.body.dispatchEvent(e);
+        et.dispatchEvent(e);
         await e.detail.result;
       } catch (e) {
         thrown = true;
@@ -789,6 +837,10 @@ describe('RequestModel Events API', () => {
       doc._rev = result.rev;
     });
 
+    afterEach(() => {
+      instance.unlisten(et);
+    });
+
     function deleted(d) {
       return {
         id: d._id,
@@ -797,6 +849,8 @@ describe('RequestModel Events API', () => {
     }
 
     it('ignores cancelled events', async () => {
+      instance.unlisten(et);
+      instance.listen(window);
       document.body.addEventListener(ArcModelEventTypes.Request.undeleteBulk, function f(e) {
         e.preventDefault();
         document.body.removeEventListener(ArcModelEventTypes.Request.undeleteBulk, f);
@@ -812,11 +866,13 @@ describe('RequestModel Events API', () => {
       // @ts-ignore
       e.requests = generator.http.savedData();
       document.body.dispatchEvent(e);
+      instance.unlisten(window);
+      instance.listen(et);
       assert.isUndefined(e.detail.result);
     });
 
     it('restores deleted items', async () => {
-      const result = await ArcModelEvents.Request.undeleteBulk(document.body, 'saved', [deleted(doc)]);
+      const result = await ArcModelEvents.Request.undeleteBulk(et, 'saved', [deleted(doc)]);
       const updatedRev = result[0].item._rev;
       assert.equal(updatedRev.indexOf('3-'), 0, 'The rev property is updated.');
       const data = await store.getDatastoreRequestData();
@@ -836,7 +892,7 @@ describe('RequestModel Events API', () => {
         });
         // @ts-ignore
         e.requestType = 'saved';
-        document.body.dispatchEvent(e);
+        et.dispatchEvent(e);
         await e.detail.result;
       } catch (e) {
         thrown = true;
@@ -855,7 +911,7 @@ describe('RequestModel Events API', () => {
         });
         // @ts-ignore
         e.requests = [deleted(doc)];
-        document.body.dispatchEvent(e);
+        et.dispatchEvent(e);
         await e.detail.result;
       } catch (e) {
         thrown = true;
@@ -880,7 +936,13 @@ describe('RequestModel Events API', () => {
       instance.listen(et);
     });
 
+    afterEach(() => {
+      instance.unlisten(et);
+    });
+
     it('ignores cancelled events', async () => {
+      instance.unlisten(et);
+      instance.listen(window);
       document.body.addEventListener(ArcModelEventTypes.Request.store, function f(e) {
         e.preventDefault();
         document.body.removeEventListener(ArcModelEventTypes.Request.store, f);
@@ -894,14 +956,16 @@ describe('RequestModel Events API', () => {
       // @ts-ignore
       e.requestType = 'saved';
       // @ts-ignore
-      e.request = generator.generateSavedItem();
+      e.request = generator.http.saved();
       document.body.dispatchEvent(e);
+      instance.unlisten(window);
+      instance.listen(et);
       assert.isUndefined(e.detail.result);
     });
 
     it('returns the change record for a history entity', async () => {
       const request = generator.http.history();
-      const result = await ArcModelEvents.Request.store(document.body, 'history', request);
+      const result = await ArcModelEvents.Request.store(et, 'history', request);
       assert.typeOf(result, 'object', 'has the change record');
       assert.typeOf(result.id, 'string', 'has the id');
       assert.typeOf(result.rev, 'string', 'has the rev');
@@ -909,7 +973,7 @@ describe('RequestModel Events API', () => {
 
     it('returns the change record for a saved entity', async () => {
       const request = generator.http.saved();
-      const result = await ArcModelEvents.Request.store(document.body, 'saved', request);
+      const result = await ArcModelEvents.Request.store(et, 'saved', request);
       assert.typeOf(result, 'object', 'has the change record');
       assert.typeOf(result.id, 'string', 'has the id');
       assert.typeOf(result.rev, 'string', 'has the rev');
@@ -917,7 +981,7 @@ describe('RequestModel Events API', () => {
 
     it('stores request with a new project', async () => {
       const request = generator.http.saved();
-      const result = await ArcModelEvents.Request.store(document.body, 'saved', request, ['test']);
+      const result = await ArcModelEvents.Request.store(et, 'saved', request, ['test']);
       // @ts-ignore
       assert.lengthOf(result.item.projects, 1, 'has project id');
       const projects = await store.getDatastoreProjectsData();
@@ -928,7 +992,7 @@ describe('RequestModel Events API', () => {
       const request = generator.http.saved();
       let thrown = false;
       try {
-        await ArcModelEvents.Request.store(document.body, 'other', request);
+        await ArcModelEvents.Request.store(et, 'other', request);
       } catch (e) {
         thrown = true;
       }
@@ -969,7 +1033,13 @@ describe('RequestModel Events API', () => {
       instance.listen(et);
     });
 
+    afterEach(() => {
+      instance.unlisten(et);
+    });
+
     it('ignores cancelled events', async () => {
+      instance.unlisten(et);
+      instance.listen(window);
       document.body.addEventListener(ArcModelEventTypes.Request.projectlist, function f(e) {
         e.preventDefault();
         document.body.removeEventListener(ArcModelEventTypes.Request.projectlist, f);
@@ -983,13 +1053,15 @@ describe('RequestModel Events API', () => {
       // @ts-ignore
       e.requestType = 'saved';
       // @ts-ignore
-      e.request = generator.generateSavedItem();
+      e.request = generator.http.saved();
       document.body.dispatchEvent(e);
+      instance.unlisten(window);
+      instance.listen(et);
       assert.isUndefined(e.detail.result);
     });
 
     it('returns project requests', async () => {
-      const result = await ArcModelEvents.Request.projectlist(document.body, project._id);
+      const result = await ArcModelEvents.Request.projectlist(et, project._id);
       assert.typeOf(result, 'array');
       assert.lengthOf(result, project.requests.length);
     });
@@ -1026,7 +1098,13 @@ describe('RequestModel Events API', () => {
       instance.listen(et);
     });
 
+    afterEach(() => {
+      instance.unlisten(et);
+    });
+
     it('ignores cancelled events', async () => {
+      instance.unlisten(et);
+      instance.listen(window);
       document.body.addEventListener(ArcModelEventTypes.Request.query, function f(e) {
         e.preventDefault();
         document.body.removeEventListener(ArcModelEventTypes.Request.query, f);
@@ -1042,11 +1120,13 @@ describe('RequestModel Events API', () => {
       // @ts-ignore
       e.term = 'test';
       document.body.dispatchEvent(e);
+      instance.unlisten(window);
+      instance.listen(et);
       assert.isUndefined(e.detail.result);
     });
 
     it('returns query requests', async () => {
-      const result = await ArcModelEvents.Request.query(document.body, requests[0].name);
+      const result = await ArcModelEvents.Request.query(et, requests[0].name);
       assert.typeOf(result, 'array');
       assert.isAbove(result.length, 0);
     });
@@ -1081,7 +1161,13 @@ describe('RequestModel Events API', () => {
       instance.listen(et);
     });
 
+    afterEach(() => {
+      instance.unlisten(et);
+    });
+
     it('ignores cancelled events', async () => {
+      instance.unlisten(et);
+      instance.listen(window);
       document.body.addEventListener(ArcModelEventTypes.Request.list, function f(e) {
         e.preventDefault();
         document.body.removeEventListener(ArcModelEventTypes.Request.list, f);
@@ -1097,28 +1183,30 @@ describe('RequestModel Events API', () => {
       // @ts-ignore
       e.term = 'test';
       document.body.dispatchEvent(e);
+      instance.unlisten(window);
+      instance.listen(et);
       assert.isUndefined(e.detail.result);
     });
 
     it('returns list result record', async () => {
-      const result = await ArcModelEvents.Request.list(document.body, 'saved');
+      const result = await ArcModelEvents.Request.list(et, 'saved');
       assert.typeOf(result, 'object', 'the result is an object');
       assert.typeOf(result.items, 'array', 'has the items array');
       assert.typeOf(result.nextPageToken, 'string', 'has the page token');
     });
 
     it('respects "limit" parameter', async () => {
-      const result = await ArcModelEvents.Request.list(document.body, 'saved', {
+      const result = await ArcModelEvents.Request.list(et, 'saved', {
         limit: 5,
       });
       assert.lengthOf(result.items, 5);
     });
 
     it('respects "nextPageToken" parameter', async () => {
-      const result1 = await ArcModelEvents.Request.list(document.body, 'saved', {
+      const result1 = await ArcModelEvents.Request.list(et, 'saved', {
         limit: 10,
       });
-      const result2 = await ArcModelEvents.Request.list(document.body, 'saved', {
+      const result2 = await ArcModelEvents.Request.list(et, 'saved', {
         nextPageToken: result1.nextPageToken,
       });
       assert.lengthOf(result2.items, 20);
@@ -1133,7 +1221,7 @@ describe('RequestModel Events API', () => {
           composed: true,
           detail: { result: undefined },
         });
-        document.body.dispatchEvent(e);
+        et.dispatchEvent(e);
         await e.detail.result;
       } catch (e) {
         thrown = true;
@@ -1144,7 +1232,7 @@ describe('RequestModel Events API', () => {
     it('throws when no requestType when constructing the event', async () => {
       let thrown = false;
       try {
-        await ArcModelEvents.Request.list(document.body, undefined);
+        await ArcModelEvents.Request.list(et, undefined);
       } catch (e) {
         thrown = true;
       }
@@ -1163,9 +1251,13 @@ describe('RequestModel Events API', () => {
       instance.listen(et);
     });
 
+    afterEach(() => {
+      instance.unlisten(et);
+    });
+
     it('calls deleteModel() with data store name', async () => {
       const spy = sinon.spy(instance, 'deleteModel');
-      await ArcModelEvents.destroy(document.body, ['saved-requests']);
+      await ArcModelEvents.destroy(et, ['saved-requests']);
       assert.isTrue(spy.calledOnce, 'function was called');
       // argument is normalized
       assert.equal(spy.args[0][0], 'saved', 'passes the argument');
@@ -1173,13 +1265,13 @@ describe('RequestModel Events API', () => {
 
     it('ignores when no stores in the request', async () => {
       const spy = sinon.spy(instance, 'deleteModel');
-      await ArcModelEvents.destroy(document.body, []);
+      await ArcModelEvents.destroy(et, []);
       assert.isFalse(spy.called);
     });
 
     it('ignores when requesting different store', async () => {
       const spy = sinon.spy(instance, 'deleteModel');
-      await ArcModelEvents.destroy(document.body, ['other']);
+      await ArcModelEvents.destroy(et, ['other']);
       assert.isFalse(spy.called);
     });
   });

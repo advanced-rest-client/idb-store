@@ -235,7 +235,7 @@ describe('WebsocketUrlHistoryModel', () => {
     it('dispatches change event', async () => {
       const entity = generator.urls.url();
       const spy = sinon.spy();
-      instance.addEventListener(ArcModelEventTypes.WSUrlHistory.State.update, spy);
+      et.addEventListener(ArcModelEventTypes.WSUrlHistory.State.update, spy);
       await instance.addUrl(entity._id);
       assert.isTrue(spy.calledOnce);
     });
@@ -296,7 +296,7 @@ describe('WebsocketUrlHistoryModel', () => {
     it('dispatches change event', async () => {
       const entity = generator.urls.url();
       const spy = sinon.spy();
-      instance.addEventListener(ArcModelEventTypes.WSUrlHistory.State.update, spy);
+      et.addEventListener(ArcModelEventTypes.WSUrlHistory.State.update, spy);
       await instance.update(entity);
       assert.isTrue(spy.calledOnce);
     });
@@ -327,7 +327,8 @@ describe('WebsocketUrlHistoryModel', () => {
     it('returns a list of matched results', async () => {
       const result = await instance.query('http://');
       assert.typeOf(result, 'array', 'result is an array');
-      assert.lengthOf(result, 30, 'has all results');
+      const httpUrls = created.filter(i => i.url.startsWith('http://'));
+      assert.lengthOf(result, httpUrls.length, 'has all results');
     });
 
     it('matches the URL', async () => {
