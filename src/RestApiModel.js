@@ -120,7 +120,7 @@ export class RestApiModel extends ArcBaseModel {
       item: entity,
       oldRev,
     };
-    ArcModelEvents.RestApi.State.update(this, record);
+    ArcModelEvents.RestApi.State.update(this.eventsTarget, record);
     return record;
   }
 
@@ -145,7 +145,7 @@ export class RestApiModel extends ArcBaseModel {
           item: copy[i],
           oldRev,
         };
-        ArcModelEvents.RestApi.State.update(this, record);
+        ArcModelEvents.RestApi.State.update(this.eventsTarget, record);
         records.push(record);
       }
     });
@@ -167,7 +167,7 @@ export class RestApiModel extends ArcBaseModel {
     if (!result.ok) {
       throw result;
     }
-    ArcModelEvents.RestApi.State.delete(this, id, result.rev);
+    ArcModelEvents.RestApi.State.delete(this.eventsTarget, id, result.rev);
     return {
       id,
       rev: result.rev,
@@ -238,7 +238,7 @@ export class RestApiModel extends ArcBaseModel {
       item: object,
       oldRev,
     };
-    ArcModelEvents.RestApi.State.dataUpdate(this, record);
+    ArcModelEvents.RestApi.State.dataUpdate(this.eventsTarget, record);
     return record;
   }
 
@@ -323,7 +323,7 @@ export class RestApiModel extends ArcBaseModel {
     doc._deleted = true;
     const response = await this.dataDb.put(doc);
     const [indexId, version] = id.split('|');
-    ArcModelEvents.RestApi.State.versionDelete(this, response.id, response.rev, indexId, version);
+    ArcModelEvents.RestApi.State.versionDelete(this.eventsTarget, response.id, response.rev, indexId, version);
     return {
       id: response.id,
       rev: response.rev,
@@ -502,11 +502,11 @@ export class RestApiModel extends ArcBaseModel {
 
   async [deleteIndexModel]() {
     await this.indexDb.destroy();
-    ArcModelEvents.destroyed(this, 'api-index');
+    ArcModelEvents.destroyed(this.eventsTarget, 'api-index');
   }
 
   async [deleteDataModel]() {
     await this.dataDb.destroy();
-    ArcModelEvents.destroyed(this, 'api-data');
+    ArcModelEvents.destroyed(this.eventsTarget, 'api-data');
   }
 }

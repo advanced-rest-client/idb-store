@@ -210,7 +210,9 @@ export class ProjectModel extends RequestBaseModel {
       copy.projects.push(pid);
       const response = await this.savedDb.put(copy);
       const record = this[createChangeRecord](copy, response, oldRev);
-      ArcModelEvents.Request.State.update(this, type, record);
+      if (this.eventsTarget) {
+        ArcModelEvents.Request.State.update(this.eventsTarget, type, record);
+      }
     }
   }
 
@@ -257,7 +259,9 @@ export class ProjectModel extends RequestBaseModel {
       copy.projects.push(pid);
       const response = await this.savedDb.put(copy);
       const record = this[createChangeRecord](copy, response, oldRev);
-      ArcModelEvents.Request.State.update(this, type, record);
+      if (this.eventsTarget) {
+        ArcModelEvents.Request.State.update(this.eventsTarget, type, record);
+      }
     }
   }
 
@@ -283,7 +287,9 @@ export class ProjectModel extends RequestBaseModel {
       const copy = /** @type ARCSavedRequest */ (this.normalizeRequestWithTime(request));
       const response = await this.savedDb.put(copy);
       const record = this[createChangeRecord](copy, response, oldRev);
-      ArcModelEvents.Request.State.update(this, 'saved', record);
+      if (this.eventsTarget) {
+        ArcModelEvents.Request.State.update(this.eventsTarget, 'saved', record);
+      }
     }
     if (project.requests.includes(rid)) {
       const index = project.requests.indexOf(pid);

@@ -240,7 +240,9 @@ export class RequestModel extends RequestBaseModel {
     if (oldRev) {
       result.oldRev = oldRev;
     }
-    ArcModelEvents.Request.State.update(this, type, result);
+    if (this.eventsTarget) {
+      ArcModelEvents.Request.State.update(this.eventsTarget, type, result);
+    }
     if (copy.type === 'saved') {
       // @ts-ignore
       await this[syncProjects](copy._id, copy.projects);
@@ -299,7 +301,9 @@ export class RequestModel extends RequestBaseModel {
         record.oldRev = oldRev;
       }
       result.push(record);
-      ArcModelEvents.Request.State.update(this, type, record);
+      if (this.eventsTarget) {
+        ArcModelEvents.Request.State.update(this.eventsTarget, type, record);
+      }
       if (request.type === 'saved') {
         // @ts-ignore
         this[syncProjects](request._id, request.projects);
@@ -327,7 +331,9 @@ export class RequestModel extends RequestBaseModel {
     }
     const db = this.getDatabase(type);
     const response = await db.remove(id, winningRev);
-    ArcModelEvents.Request.State.delete(this, type, id, response.rev);
+    if (this.eventsTarget) {
+      ArcModelEvents.Request.State.delete(this.eventsTarget, type, id, response.rev);
+    }
     const typedObj = /** @type ARCSavedRequest */ (obj);
     if (typedObj.projects) {
       await this.removeRequestsFromProjects(typedObj.projects, [id]);
@@ -380,7 +386,9 @@ export class RequestModel extends RequestBaseModel {
         if (requestData.projects && requestData.projects.length) {
           projectIds = projectIds.concat(requestData.projects);
         }
-        ArcModelEvents.Request.State.delete(this, type, item.id, updateResult.rev);
+        if (this.eventsTarget) {
+          ArcModelEvents.Request.State.delete(this.eventsTarget, type, item.id, updateResult.rev);
+        }
         result.push({
           rev: updateResult.rev,
           id: item.id,
@@ -459,9 +467,11 @@ export class RequestModel extends RequestBaseModel {
     const db = this.getDatabase(type);
     const result = await revertDelete(db, items);
     await this[revertRemoveProject](result);
-    result.forEach((record) => {
-      ArcModelEvents.Request.State.update(this, type, record);
-    });
+    if (this.eventsTarget) {
+      result.forEach((record) => {
+        ArcModelEvents.Request.State.update(this.eventsTarget, type, record);
+      });
+    }
     return result;
   }
 
@@ -598,7 +608,9 @@ export class RequestModel extends RequestBaseModel {
         rev: r.rev,
         item: project,
       };
-      ArcModelEvents.Project.State.update(this, record);
+      if (this.eventsTarget) {
+        ArcModelEvents.Project.State.update(this.eventsTarget, record);
+      }
       result[result.length] = r.id;
     }
     return result;
@@ -980,7 +992,9 @@ export class RequestModel extends RequestBaseModel {
         item: project,
         oldRev,
       };
-      ArcModelEvents.Project.State.update(this, record);
+      if (this.eventsTarget) {
+        ArcModelEvents.Project.State.update(this.eventsTarget, record);
+      }
     }
   }
 

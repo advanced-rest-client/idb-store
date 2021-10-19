@@ -137,7 +137,7 @@ export class WebsocketUrlHistoryModel extends ArcBaseModel {
       oldRev,
       item,
     };
-    ArcModelEvents.WSUrlHistory.State.update(this, record);
+    ArcModelEvents.WSUrlHistory.State.update(this.eventsTarget, record);
     return record;
   }
 

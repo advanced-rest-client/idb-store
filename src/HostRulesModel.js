@@ -115,7 +115,9 @@ export class HostRulesModel extends ArcBaseModel {
       item: rule,
       oldRev,
     };
-    ArcModelEvents.HostRules.State.update(this, record);
+    if (this.eventsTarget) {
+      ArcModelEvents.HostRules.State.update(this.eventsTarget, record);
+    }
     return record;
   }
 
@@ -152,7 +154,9 @@ export class HostRulesModel extends ArcBaseModel {
         oldRev,
       };
       result.push(record);
-      ArcModelEvents.HostRules.State.update(this, record);
+      if (this.eventsTarget) {
+        ArcModelEvents.HostRules.State.update(this.eventsTarget, record);
+      }
     }
     return result;
   }
@@ -174,7 +178,9 @@ export class HostRulesModel extends ArcBaseModel {
       id,
       rev: response.rev,
     };
-    ArcModelEvents.HostRules.State.delete(this, id, response.rev);
+    if (this.eventsTarget) {
+      ArcModelEvents.HostRules.State.delete(this.eventsTarget, id, response.rev);
+    }
     return result;
   }
 

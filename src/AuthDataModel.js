@@ -172,7 +172,9 @@ export class AuthDataModel extends ArcBaseModel {
       item: doc,
       oldRev,
     };
-    ArcModelEvents.AuthData.State.update(this, record);
+    if (this.eventsTarget) {
+      ArcModelEvents.AuthData.State.update(this.eventsTarget, record);
+    }
     return record;
   }
 }

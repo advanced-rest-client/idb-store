@@ -215,7 +215,7 @@ export class VariablesModel extends ArcBaseModel {
         oldRev,
         item: data,
       };
-      ArcModelEvents.Environment.State.update(this, record);
+      ArcModelEvents.Environment.State.update(this.eventsTarget, record);
 
       return record;
     } catch (cause) {
@@ -273,7 +273,7 @@ export class VariablesModel extends ArcBaseModel {
         this._handleException(result);
       }
       await this[deleteEnvironmentVariables](environment);
-      ArcModelEvents.Environment.State.delete(this, result.id, result.rev);
+      ArcModelEvents.Environment.State.delete(this.eventsTarget, result.id, result.rev);
       return {
         id: result.id,
         rev: result.rev,
@@ -478,7 +478,7 @@ export class VariablesModel extends ArcBaseModel {
       oldRev,
       item: entity,
     };
-    ArcModelEvents.Variable.State.update(this, record);
+    ArcModelEvents.Variable.State.update(this.eventsTarget, record);
     return record;
   }
 
@@ -508,7 +508,7 @@ export class VariablesModel extends ArcBaseModel {
       if (!result.ok) {
         this._handleException(result);
       }
-      ArcModelEvents.Variable.State.delete(this, result.id, result.rev);
+      ArcModelEvents.Variable.State.delete(this.eventsTarget, result.id, result.rev);
       return {
         id: result.id,
         rev: result.rev,
@@ -566,7 +566,7 @@ export class VariablesModel extends ArcBaseModel {
         state.systemVariables = this.systemVariables;
       }
     }
-    ArcModelEvents.Environment.State.select(this, state);
+    ArcModelEvents.Environment.State.select(this.eventsTarget, state);
   }
 
   /**
@@ -618,12 +618,12 @@ export class VariablesModel extends ArcBaseModel {
 
   async [deleteVariablesModel]() {
     await this.variableDb.destroy();
-    ArcModelEvents.destroyed(this, 'variables');
+    ArcModelEvents.destroyed(this.eventsTarget, 'variables');
   }
 
   async [deleteEnvironmentsModel]() {
     await this.environmentDb.destroy();
-    ArcModelEvents.destroyed(this, 'variables-environments');
+    ArcModelEvents.destroyed(this.eventsTarget, 'variables-environments');
   }
 
   /**

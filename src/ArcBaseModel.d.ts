@@ -13,7 +13,7 @@ export declare const createChangeRecord: unique symbol;
 /**
  * A base class for all models.
  */
-export declare class ArcBaseModel extends HTMLElement {
+export declare class ArcBaseModel {
 
   /**
    * Note, the element does not include PouchDB to the document!

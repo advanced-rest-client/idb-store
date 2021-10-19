@@ -154,7 +154,9 @@ export class RequestBaseModel extends ArcBaseModel {
     const oldRev = copy._rev;
     const response = await this.projectDb.put(copy);
     const record = this[createChangeRecord](copy, response, oldRev);
-    ArcModelEvents.Project.State.update(this, record);
+    if (this.eventsTarget) {
+      ArcModelEvents.Project.State.update(this.eventsTarget, record);
+    }
     return record;
   }
 
@@ -186,7 +188,9 @@ export class RequestBaseModel extends ArcBaseModel {
     await this.removeProjectRequests(id);
     const obj = await this.readProject(id);
     const response = await this.projectDb.remove(id, obj._rev);
-    ArcModelEvents.Project.State.delete(this, id, response.rev);
+    if (this.eventsTarget) {
+      ArcModelEvents.Project.State.delete(this.eventsTarget, id, response.rev);
+    }
     return {
       id,
       rev: response.rev,
@@ -209,7 +213,7 @@ export class RequestBaseModel extends ArcBaseModel {
     if (!Array.isArray(requests) || !requests.length) {
       return;
     }
-    const items = /** @type ARCSavedRequest[] */ (await ArcModelEvents.Request.readBulk(this, 'saved', requests, {
+    const items = /** @type ARCSavedRequest[] */ (await ArcModelEvents.Request.readBulk(this.eventsTarget, 'saved', requests, {
       preserveOrder: true,
     }));
     const remove = [];
@@ -234,10 +238,10 @@ export class RequestBaseModel extends ArcBaseModel {
       }
     });
     if (remove.length) {
-      await ArcModelEvents.Request.deleteBulk(this, 'saved', remove);
+      await ArcModelEvents.Request.deleteBulk(this.eventsTarget, 'saved', remove);
     }
     if (update.length) {
-      await ArcModelEvents.Request.updateBulk(this, 'saved', update);
+      await ArcModelEvents.Request.updateBulk(this.eventsTarget, 'saved', update);
     }
   }
 
@@ -338,7 +342,9 @@ export class RequestBaseModel extends ArcBaseModel {
         record.oldRev = oldRev;
       }
       result.push(record);
-      ArcModelEvents.Project.State.update(this, record);
+      if (this.eventsTarget) {
+        ArcModelEvents.Project.State.update(this.eventsTarget, record);
+      }
     });
     return result;
   }

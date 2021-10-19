@@ -150,7 +150,7 @@ export class UrlHistoryModel extends ArcBaseModel {
       oldRev,
       item,
     };
-    ArcModelEvents.UrlHistory.State.update(this, record);
+    ArcModelEvents.UrlHistory.State.update(this.eventsTarget, record);
     return record;
   }
 
@@ -207,7 +207,7 @@ export class UrlHistoryModel extends ArcBaseModel {
     if (!result.ok) {
       this._handleException(result);
     }
-    ArcModelEvents.UrlHistory.State.delete(this, result.id, result.rev);
+    ArcModelEvents.UrlHistory.State.delete(this.eventsTarget, result.id, result.rev);
     return {
       id: result.id,
       rev: result.rev,

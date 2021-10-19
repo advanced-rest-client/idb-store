@@ -165,7 +165,7 @@ export class HistoryDataModel extends ArcBaseModel {
       response: responseCopy,
       transportRequest: transportCopy,
     });
-    await ArcModelEvents.Request.store(this, 'history', doc);
+    await ArcModelEvents.Request.store(this.eventsTarget, 'history', doc);
   }
 
   /**

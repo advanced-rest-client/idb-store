@@ -179,7 +179,9 @@ export class ClientCertificateModel extends ArcBaseModel {
     const data = /** @type ARCRequestCertificate */ (await dataDb.get(dataId));
     data._deleted = true;
     await dataDb.put(data);
-    ArcModelEvents.ClientCertificate.State.delete(this, id, updateRecord.rev);
+    if (this.eventsTarget) {
+      ArcModelEvents.ClientCertificate.State.delete(this.eventsTarget, id, updateRecord.rev);
+    }
     return {
       id,
       rev: updateRecord.rev,
@@ -221,7 +223,9 @@ export class ClientCertificateModel extends ArcBaseModel {
     indexEntity._id = dataResponse.id;
     const response = await this.db.put(indexEntity);
     const record = this[createChangeRecord](indexEntity, response);
-    ArcModelEvents.ClientCertificate.State.update(this, record);
+    if (this.eventsTarget) {
+      ArcModelEvents.ClientCertificate.State.update(this.eventsTarget, record);
+    }
     return record;
   }
 
