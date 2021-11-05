@@ -275,7 +275,7 @@ export async function revertDelete(db, items) {
  * @returns {Buffer|ArrayBuffer|undefined}
  */
 export function restoreTransformedPayload(body) {
-  if (body.type === 'ArrayBuffer') {
+  if (body.type === 'ArrayBuffer' || (body.type === 'Buffer' || typeof Buffer === 'undefined')) {
     const { buffer } = new Uint16Array(body.data);
     return buffer;
   }
